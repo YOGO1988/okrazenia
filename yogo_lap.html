@@ -440,18 +440,32 @@
             setResultsServerConnected(false);
           };
 
+          // BroadcastChannel - wysyła wyniki do otwartych okien (2. ekran)
+          const bcRef = useRef(null);
+          useEffect(() => {
+            bcRef.current = new BroadcastChannel('yogo_lap_results');
+            return () => bcRef.current && bcRef.current.close();
+          }, []);
+
+          const buildResultsPayload = () => ({
+            type: 'results_update',
+            participants: participantsData,
+            results: results.map(({ lapDetails, ...r }) => r),
+            gunStart: gunStart,
+            lapDistance: lapDistance,
+            eventName: eventName
+          });
+
           const sendResultsUpdate = () => {
+            const updateData = buildResultsPayload();
+            // WebSocket broadcast server
             if (resultsWsRef.current && resultsWsRef.current.readyState === WebSocket.OPEN) {
-              const updateData = {
-                type: 'results_update',
-                participants: participantsData,
-                results: results,
-                gunStart: gunStart,
-                lapDistance: lapDistance,
-                eventName: eventName
-              };
               resultsWsRef.current.send(JSON.stringify(updateData));
               console.log('📤 Wysłano aktualizację wyników');
+            }
+            // BroadcastChannel - drugie okno/ekran
+            if (bcRef.current) {
+              bcRef.current.postMessage(updateData);
             }
           };
 
@@ -1824,7 +1838,16 @@
                         className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded"
                       >
                         <Icons.Eye />
-                        Widok publiczny
+                        Widok publiczny (ten ekran)
+                      </button>
+                      <button
+                        onClick={() => {
+                          const url = window.location.href.replace(/[^/]*$/, '') + 'yogo_lap_net.html?mode=local';
+                          window.open(url, 'yogo_second_screen', 'width=1280,height=800');
+                        }}
+                        className="flex items-center gap-2 bg-green-600/80 hover:bg-green-600 px-4 py-2 rounded font-semibold"
+                      >
+                        🖥️ Otwórz na 2. ekranie
                       </button>
                     </div>
                   </div>

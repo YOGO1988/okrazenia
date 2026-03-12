@@ -113,7 +113,8 @@
         const params = new URLSearchParams(window.location.search);
         const API_URL = params.get('api');       // tryb HTTP polling
         const WS_URL = params.get('server') || 'ws://192.168.1.100:3002'; // tryb WebSocket
-        const MODE = API_URL ? 'http' : 'ws';
+        const LOCAL_MODE = params.get('mode') === 'local'; // tryb BroadcastChannel (2. ekran)
+        const MODE = LOCAL_MODE ? 'local' : (API_URL ? 'http' : 'ws');
         const CAROUSEL_SPEED = 5000;
         const POLL_INTERVAL = 5000; // co 5 sekund pobierz wyniki
         // ============================================
@@ -554,7 +555,20 @@
         }
 
         // Initialize
-        if (MODE === 'http') {
+        if (MODE === 'local') {
+            // Tryb BroadcastChannel - 2. ekran na tej samej maszynie
+            const bc = new BroadcastChannel('yogo_lap_results');
+            bc.onmessage = (event) => {
+                if (event.data && event.data.type === 'results_update') {
+                    currentData = event.data;
+                    updateUI();
+                }
+            };
+            const statusEl = document.getElementById('status');
+            statusEl.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-md bg-green-500/30 border border-green-500';
+            statusEl.querySelector('span').textContent = '2. ekran gotowy';
+            statusEl.querySelector('div').className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse-custom';
+        } else if (MODE === 'http') {
             // Tryb HTTP polling - dla internetu
             pollHttp();
             setInterval(pollHttp, POLL_INTERVAL);
