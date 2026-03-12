@@ -1,13 +1,9 @@
 # INSTRUKCJA:
 # Wgraj ten plik na serwer jako ".htaccess" (z kropką na początku, bez .txt)
-# Lokalizacja: domains/yogoeven.vot.pl/public_html/lap/.htaccess
+# Lokalizacja: domains/yogoevents.pl/public_html/lap/.htaccess
 
 <IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
     Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    Header always set Access-Control-Allow-Headers "Content-Type, X-Token"
+    Header always set Access-Control-Allow-Headers "Content-Type"
 </IfModule>
-
-# Pozwól Apache na obsługę OPTIONS (preflight CORS)
-RewriteEngine On
-RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule ^(.*)$ $1 [R=200,L]
