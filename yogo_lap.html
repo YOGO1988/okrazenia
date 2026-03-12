@@ -488,12 +488,11 @@
               eventName: eventName
             });
 
-            fetch(httpPublishUrl, {
+            // Content-Type: text/plain + token w URL = brak preflight OPTIONS
+            const urlWithToken = httpPublishUrl + (httpPublishUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(httpPublishToken);
+            fetch(urlWithToken, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Token': httpPublishToken
-              },
+              headers: { 'Content-Type': 'text/plain' },
               body: payload
             })
               .then(r => r.json())
