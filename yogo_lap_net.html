@@ -67,8 +67,10 @@
     <script>
         // ============================================
         // KONFIGURACJA
+        // URL serwera broadcast można podać jako parametr:
+        // yogo_lap_net.html?server=ws://192.168.1.100:3002
         // ============================================
-        const WS_URL = 'ws://192.168.0.103:3002';
+        const WS_URL = new URLSearchParams(window.location.search).get('server') || 'ws://192.168.1.100:3002';
         const CAROUSEL_SPEED = 5000; // 5 sekund
         // ============================================
 
