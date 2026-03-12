@@ -63,6 +63,12 @@
         .live-badge { padding: 4px 10px; background: #dc2626; border-radius: 9999px; font-size: 12px; font-weight: 700; animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
+        #recent-panel { background: rgba(245,158,11,0.1); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(245,158,11,0.3); min-width: 300px; max-width: 340px; overflow-y: auto; }
+        #recent-panel .rp-title { font-size: 13px; font-weight: 700; color: #f59e0b; margin-bottom: 8px; }
+        .recent-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; margin-bottom: 3px; background: rgba(255,255,255,0.06); border-radius: 7px; border-left: 3px solid #f59e0b; }
+        .recent-row .r-bib { font-size: 20px; font-weight: 900; width: 44px; text-align: center; }
+        .recent-row .r-name { flex: 1; font-size: 13px; font-weight: 600; }
+        .recent-row .r-time { font-size: 11px; color: #9ca3af; font-family: monospace; }
         #status-bar { position: fixed; bottom: 10px; right: 14px; padding: 5px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
         .dot-green { background: #22c55e; }
@@ -93,7 +99,10 @@
                 <div class="top5-card" id="card-men" style="border-color:rgba(96,165,250,0.4)"><p style="color:#6b7280">Oczekiwanie...</p></div>
                 <div class="top5-card" id="card-women" style="border-color:rgba(244,114,182,0.4)"><p style="color:#6b7280">Oczekiwanie...</p></div>
             </div>
-            <div class="list-wrap" id="carousel-list"></div>
+            <div style="display:grid;grid-template-columns:1fr 330px;gap:12px;flex:1;overflow:hidden;margin-top:0">
+                <div class="list-wrap" id="carousel-list"></div>
+                <div id="recent-panel"><div class="rp-title">⏱ Ostatnie odczyty z mety</div><div id="recent-list"></div></div>
+            </div>
         </div>
 
         <div id="sec-scroll" class="ps-section">
@@ -216,6 +225,11 @@
                 renderTopCard('card-men',   men,   carouselIdx, '#93c5fd', '#93c5fd');
                 renderTopCard('card-women', women, carouselIdx, '#f9a8d4', '#f9a8d4');
                 document.getElementById('carousel-list').innerHTML = rows;
+                // Recent reads
+                const rr = currentData.recentReads || [];
+                document.getElementById('recent-list').innerHTML = rr.length === 0
+                    ? '<p style="color:#6b7280;text-align:center;padding:12px">Brak odczytów</p>'
+                    : rr.map(r => `<div class="recent-row"><div class="r-bib">${r.bib||'?'}</div><div class="r-name">${(r.firstName||'')} ${(r.lastName||'')}</div><div class="r-time">${r.datetime||''}</div></div>`).join('');
             }
             if (psView === 'scroll') {
                 document.getElementById('scroll-content').innerHTML = rows;
@@ -306,10 +320,20 @@
 
         // --- BROADCASTCHANNEL (lokalny 2. ekran) ---
         if (MODE === 'local') {
+            // Odczytaj natychmiast z localStorage
+            try {
+                const stored = localStorage.getItem('yogo_lap_data');
+                if (stored) applyData(JSON.parse(stored));
+            } catch(e) {}
             const bc = new BroadcastChannel('yogo_lap_results');
             bc.onmessage = e => {
                 if (e.data && e.data.type === 'results_update') applyData(e.data);
             };
+            window.addEventListener('storage', e => {
+                if (e.key === 'yogo_lap_data' && e.newValue) {
+                    try { applyData(JSON.parse(e.newValue)); } catch(err) {}
+                }
+            });
             setStatus('ok', '2. ekran gotowy');
         } else if (MODE === 'http') {
             pollHttp();
