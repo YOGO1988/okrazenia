@@ -22,173 +22,179 @@
     <!-- PUBLIC SCREEN MODE - activated by ?publicscreen=1 -->
     <script>
     if (new URLSearchParams(window.location.search).get('publicscreen') === '1') {
-        document.documentElement.style.background = 'linear-gradient(135deg, #111827, #1e3a5f, #4a1d96)';
-        document.write(`
-        <style>
-            * { margin:0; padding:0; box-sizing:border-box; }
-            body { background: linear-gradient(135deg, #111827, #1e3a5f, #4a1d96); color: white; font-family: system-ui, sans-serif; height: 100vh; overflow: hidden; }
-            #ps-header { background: rgba(0,0,0,0.4); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); }
-            #ps-tabs { display: flex; gap: 8px; padding: 8px 24px; background: rgba(0,0,0,0.2); }
-            #ps-tabs button { padding: 6px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; cursor: pointer; font-size: 13px; font-weight: 600; }
-            #ps-tabs button.active { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); }
-            #ps-content { height: calc(100vh - 90px); overflow: hidden; padding: 16px 24px; }
-            .ps-section { display: none; height: 100%; }
-            .ps-section.active { display: block; }
-            #ps-top5 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-            .top5-card { background: rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; }
-            #ps-list { overflow-y: auto; height: 100%; }
-            #ps-scroll-wrap { overflow: hidden; height: 100%; }
-            #ps-recent { background: rgba(245,158,11,0.1); border-radius: 10px; padding: 10px; border: 1px solid rgba(245,158,11,0.3); margin-top: 10px; }
-            #ps-recent-title { font-size: 13px; font-weight: 700; color: #f59e0b; margin-bottom: 6px; }
-            .ps-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin-bottom: 4px; background: rgba(255,255,255,0.07); border-radius: 8px; }
-            .ps-row .pos { font-size: 18px; font-weight: bold; width: 40px; text-align: center; color: #9ca3af; }
-            .ps-row .bib { font-size: 32px; font-weight: 900; width: 60px; text-align: center; }
-            .ps-row .name { flex: 1; font-size: 16px; font-weight: 600; padding: 0 12px; }
-            .ps-row .laps { font-size: 28px; font-weight: 900; font-family: monospace; text-align: right; width: 60px; }
-            .ps-row .dist { font-size: 14px; font-weight: 600; text-align: right; width: 80px; color: #d1d5db; }
-            #ps-status { font-size: 12px; color: #6b7280; }
-            #ps-waiting { text-align: center; padding: 80px; color: #6b7280; font-size: 18px; }
-        </style>
-        <div id="ps-header">
-            <div style="font-size:22px;font-weight:900">YO&GO Lap - Wyniki na żywo</div>
-            <div id="ps-eventname" style="font-size:18px;font-weight:700;color:#86efac"></div>
-            <div style="text-align:right">
-                <div style="font-size:11px;color:#9ca3af">Czas od startu</div>
-                <div id="ps-timer" style="font-size:28px;font-family:monospace;font-weight:900;color:#4ade80">--:--:--</div>
-            </div>
-        </div>
-        <div id="ps-tabs">
-            <button class="active" onclick="psSwitch('carousel')">🏆 Top 5</button>
-            <button onclick="psSwitch('scroll')">📜 Lista płynie</button>
-            <button onclick="psSwitch('list')">📋 Pełna lista</button>
-        </div>
-        <div id="ps-content">
-            <div id="sec-carousel" class="ps-section active">
-                <div id="ps-top5"><div class="top5-card" id="ps-men"><p style="color:#9ca3af;text-align:center;padding:20px">Oczekiwanie...</p></div><div class="top5-card" id="ps-women"><p style="color:#9ca3af;text-align:center;padding:20px">Oczekiwanie...</p></div></div>
-                <div style="display:grid;grid-template-columns:1fr 340px;gap:12px;margin-top:12px;height:calc(100% - 140px)">
-                    <div id="ps-carousel-list" style="overflow-y:auto"></div>
-                    <div id="ps-recent"><div id="ps-recent-title">⏱ Ostatnie odczyty z mety</div><div id="ps-recent-list"></div></div>
-                </div>
-            </div>
-            <div id="sec-scroll" class="ps-section"><div id="ps-scroll-wrap"><div id="ps-scroll-content"></div></div></div>
-            <div id="sec-list" class="ps-section"><div id="ps-list"></div></div>
-        </div>
-        `);
+        document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>YO&GO Lap - 2. Ekran</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:linear-gradient(135deg,#111827,#1e3a5f,#4a1d96);color:white;font-family:system-ui,sans-serif;height:100vh;overflow:hidden}
+#hdr{background:rgba(0,0,0,0.45);padding:10px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.2)}
+#hdr .title{font-size:20px;font-weight:900}
+#hdr .evname{font-size:17px;font-weight:700;color:#86efac;flex:1;text-align:center}
+#hdr .timer{font-size:28px;font-family:monospace;font-weight:900;color:#4ade80}
+#hdr .tlabel{font-size:10px;color:#9ca3af;text-align:right}
+#hdr .live{margin-left:12px;padding:3px 9px;background:#dc2626;border-radius:9999px;font-size:11px;font-weight:700;animation:pulse 2s infinite}
+#tabs{display:flex;gap:8px;padding:7px 24px;background:rgba(0,0,0,0.25);border-bottom:1px solid rgba(255,255,255,0.1)}
+#tabs button{padding:6px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5);cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+#tabs button.active{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.45);color:white}
+#content{height:calc(100vh - 88px);overflow:hidden;padding:12px 20px}
+.sec{display:none;height:100%}
+.sec.active{display:flex;flex-direction:column}
+/* Rows */
+.row{display:flex;align-items:center;padding:8px 12px;margin-bottom:3px;background:rgba(255,255,255,0.07);border-radius:8px;border-left:4px solid #6b7280}
+.row.M{border-left-color:#60a5fa}.row.K{border-left-color:#f472b6}
+.row .rpos{font-size:15px;font-weight:700;width:32px;text-align:center;color:#9ca3af}
+.row .rbib{font-size:28px;font-weight:900;width:54px;text-align:center}
+.row .rname{flex:1;font-size:15px;font-weight:600;padding:0 10px}
+.row .rlaps{font-size:26px;font-weight:900;font-family:monospace;width:52px;text-align:right}
+.row .rdist{font-size:13px;font-weight:600;width:76px;text-align:right;color:#d1d5db}
+/* Meta panel */
+#meta-panel{background:rgba(245,158,11,0.1);border-radius:10px;padding:10px 12px;border:1px solid rgba(245,158,11,0.3);width:280px;min-width:280px;overflow-y:auto}
+#meta-panel h3{font-size:12px;font-weight:700;color:#f59e0b;margin-bottom:7px}
+.mrow{display:flex;align-items:center;gap:8px;padding:5px 8px;margin-bottom:3px;background:rgba(255,255,255,0.06);border-radius:7px;border-left:3px solid #f59e0b}
+.mrow .mbib{font-size:20px;font-weight:900;width:42px;text-align:center}
+.mrow .mname{flex:1;font-size:13px;font-weight:600}
+.mrow .mlaps{font-size:18px;font-weight:900;font-family:monospace;color:#fbbf24}
+/* Top5 */
+#top5-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
+.t5card{background:rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.15)}
+.t5card h3{font-size:12px;font-weight:700;margin-bottom:10px}
+.t5row{display:flex;align-items:center;gap:10px;padding:6px 8px;margin-bottom:4px;background:rgba(255,255,255,0.07);border-radius:7px}
+.t5row .p{font-size:14px;font-weight:700;width:22px;color:#9ca3af}
+.t5row .b{font-size:24px;font-weight:900;width:46px;text-align:center}
+.t5row .n{flex:1;font-size:14px;font-weight:600}
+.t5row .l{font-size:22px;font-weight:900;font-family:monospace}
+.t5row .d{font-size:12px;color:#d1d5db;width:64px;text-align:right}
+.cat-label{font-size:11px;font-weight:700;opacity:.6;margin-bottom:4px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+</style></head><body>
+<div id="hdr">
+  <div class="title">YO&amp;GO Lap</div>
+  <div class="evname" id="evname"></div>
+  <div><div class="tlabel">Czas od startu</div><div class="timer" id="timer">--:--:--</div></div>
+  <div class="live">● LIVE</div>
+</div>
+<div id="tabs">
+  <button class="active" onclick="sw('flow')">🏃 Wyniki na żywo</button>
+  <button onclick="sw('stand')">📋 Klasyfikacja</button>
+  <button onclick="sw('top5')">🏆 Top 5 kategorie</button>
+</div>
+<div id="content">
+  <div id="sec-flow" class="sec active">
+    <div style="display:flex;gap:12px;height:100%;overflow:hidden">
+      <div style="flex:1;overflow:hidden" id="flow-wrap"><div id="flow-list"></div></div>
+      <div id="meta-panel"><h3>⏱ Meta</h3><div id="meta-list"></div></div>
+    </div>
+  </div>
+  <div id="sec-stand" class="sec"><div style="overflow-y:auto;height:100%" id="stand-list"></div></div>
+  <div id="sec-top5" class="sec">
+    <div id="top5-grid">
+      <div class="t5card" id="t5-men"></div>
+      <div class="t5card" id="t5-women"></div>
+    </div>
+  </div>
+</div>
+</body></html>`);
 
-        let psData = null;
-        let psView = 'carousel';
-        let psCarouselIdx = 0;
-        let psScrollPos = 0;
-        let psScrollRaf = null;
+        let D = null;
+        let view = 'flow';
+        let flowRaf = null, flowPos = 0;
+        let catIdx = 0, catTimer = null;
 
-        function psSwitch(v) {
-            psView = v;
-            document.querySelectorAll('#ps-tabs button').forEach((b,i) => b.classList.toggle('active', ['carousel','scroll','list'][i] === v));
-            document.querySelectorAll('.ps-section').forEach(s => s.classList.remove('active'));
+        function sw(v) {
+            view = v;
+            document.querySelectorAll('#tabs button').forEach((b,i)=>b.classList.toggle('active',['flow','stand','top5'][i]===v));
+            document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
             document.getElementById('sec-'+v).classList.add('active');
-            if (psScrollRaf) cancelAnimationFrame(psScrollRaf);
-            if (v === 'scroll') psStartScroll();
-            if (psData) psRender();
+            if(flowRaf){cancelAnimationFrame(flowRaf);flowRaf=null;}
+            if(catTimer){clearInterval(catTimer);catTimer=null;}
+            render();
+            if(v==='flow') startFlow();
+            if(v==='top5') startCat();
         }
 
-        function psRowHtml(r, idx) {
-            const g = r.gender === 'K' ? '#f9a8d4' : '#93c5fd';
-            return '<div class="ps-row" style="border-left:4px solid '+g+'">'
-                +'<div class="pos">'+( idx+1)+'</div>'
-                +'<div class="bib">'+(r.bib||r.bibNumber||'?')+'</div>'
-                +'<div class="name">'+(r.firstName||'')+' '+(r.lastName||'')+'</div>'
-                +'<div class="laps">'+(r.laps||r.lapsCount||0)+'</div>'
-                +'<div class="dist">'+parseFloat(r.distance||r.totalDistance||0).toFixed(2)+' km</div>'
+        function rowHtml(r,i){
+            const g=r.gender||'';
+            return '<div class="row '+g+'"><div class="rpos">'+(i+1)+'</div><div class="rbib">'+(r.bib||'?')+'</div><div class="rname">'+(r.firstName||'')+' '+(r.lastName||'')+'</div><div class="rlaps">'+(r.laps||0)+'</div><div class="rdist">'+parseFloat(r.distance||0).toFixed(2)+' km</div></div>';
+        }
+
+        function metaHtml(reads){
+            if(!reads||!reads.length) return '<p style="color:#6b7280;padding:10px;text-align:center">Brak odczytów</p>';
+            return reads.map(r=>'<div class="mrow"><div class="mbib">'+(r.bib||'?')+'</div><div class="mname">'+(r.firstName||'')+' '+(r.lastName||'')+'</div><div class="mlaps">'+(r.laps||0)+'</div></div>').join('');
+        }
+
+        function getCategories(sorted){
+            const cats = new Set();
+            sorted.forEach(r=>{if(r.ageCategory)cats.add(r.ageCategory);});
+            const list = [null]; // null = overall
+            cats.forEach(c=>list.push(c));
+            return list;
+        }
+
+        function top5CardHtml(title, athletes, color){
+            if(!athletes||!athletes.length) return '<div class="t5card" style="border-color:'+color+'40"><h3 style="color:'+color+'">'+title+'</h3><p style="color:#6b7280;padding:10px">Brak wyników</p></div>';
+            return '<div class="t5card" style="border-color:'+color+'40"><h3 style="color:'+color+'">'+title+'</h3>'
+                +athletes.slice(0,5).map((r,i)=>'<div class="t5row"><div class="p">'+(i+1)+'.</div><div class="b">'+(r.bib||'?')+'</div><div class="n">'+(r.firstName||'')+' '+(r.lastName||'')+'</div><div class="l">'+(r.laps||0)+'</div><div class="d">'+parseFloat(r.distance||0).toFixed(2)+' km</div></div>').join('')
                 +'</div>';
         }
 
-        function psRecentHtml(reads) {
-            if (!reads || reads.length === 0) return '<p style="color:#6b7280;text-align:center;padding:12px">Brak odczytów</p>';
-            return reads.map(r => '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;margin-bottom:3px;background:rgba(255,255,255,0.06);border-radius:7px;border-left:3px solid #f59e0b">'
-                +'<div style="font-size:22px;font-weight:900;width:48px;text-align:center">'+(r.bib||'?')+'</div>'
-                +'<div style="flex:1;font-size:14px;font-weight:600">'+(r.firstName||'')+' '+(r.lastName||'')+'</div>'
-                +'<div style="font-size:12px;color:#9ca3af;font-family:monospace">'+(r.datetime||'')+'</div>'
-                +'</div>'
-            ).join('');
-        }
+        function render(){
+            if(!D||!D.results) return;
+            const sorted=[...D.results].sort((a,b)=>(b.laps||0)-(a.laps||0));
+            if(D.eventName) document.getElementById('evname').textContent=D.eventName;
 
-        function psRender() {
-            if (!psData || !psData.results) return;
-            const sorted = [...psData.results].sort((a,b)=>(b.laps||b.lapsCount||0)-(a.laps||a.lapsCount||0));
-            if (psData.eventName) document.getElementById('ps-eventname').textContent = psData.eventName;
-
-            if (psView === 'carousel' || psView === 'list') {
-                // top5
-                const men = sorted.filter(r=>r.gender==='M').slice(0,5);
-                const women = sorted.filter(r=>r.gender==='K').slice(0,5);
-                const r = men[psCarouselIdx % Math.max(men.length,1)];
-                const rw = women[psCarouselIdx % Math.max(women.length,1)];
-                document.getElementById('ps-men').innerHTML = r ? '<div style="font-size:12px;color:#93c5fd;font-weight:700;margin-bottom:8px">MĘŻCZYŹNI #'+(psCarouselIdx%men.length+1)+'/'+men.length+'</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:48px;font-weight:900">'+(r.bib||'?')+'</div><div style="flex:1"><div style="font-size:20px;font-weight:700;color:#93c5fd">'+(r.firstName||'')+' '+(r.lastName||'')+'</div></div><div style="text-align:right"><div style="font-size:36px;font-weight:900">'+(r.laps||0)+'</div><div style="font-size:11px;color:#9ca3af">okrążenie</div><div style="font-size:16px;font-weight:700">'+parseFloat(r.distance||0).toFixed(2)+' km</div></div></div>' : '<p style="color:#9ca3af;text-align:center;padding:20px">Brak wyników</p>';
-                document.getElementById('ps-women').innerHTML = rw ? '<div style="font-size:12px;color:#f9a8d4;font-weight:700;margin-bottom:8px">KOBIETY #'+(psCarouselIdx%women.length+1)+'/'+women.length+'</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:48px;font-weight:900">'+(rw.bib||'?')+'</div><div style="flex:1"><div style="font-size:20px;font-weight:700;color:#f9a8d4">'+(rw.firstName||'')+' '+(rw.lastName||'')+'</div></div><div style="text-align:right"><div style="font-size:36px;font-weight:900">'+(rw.laps||0)+'</div><div style="font-size:11px;color:#9ca3af">okrążenie</div><div style="font-size:16px;font-weight:700">'+parseFloat(rw.distance||0).toFixed(2)+' km</div></div></div>' : '<p style="color:#9ca3af;text-align:center;padding:20px">Brak wyników</p>';
-                document.getElementById('ps-carousel-list').innerHTML = sorted.map(psRowHtml).join('');
-                const rr = document.getElementById('ps-recent-list');
-                if (rr) rr.innerHTML = psRecentHtml(psData.recentReads);
+            if(view==='flow'||view==='stand'){
+                const html=sorted.map(rowHtml).join('');
+                if(view==='flow'){document.getElementById('flow-list').innerHTML=html;}
+                else{document.getElementById('stand-list').innerHTML=html;}
+                document.getElementById('meta-list').innerHTML=metaHtml(D.recentReads);
             }
-            if (psView === 'scroll') {
-                document.getElementById('ps-scroll-content').innerHTML = sorted.map(psRowHtml).join('');
-            }
-            if (psView === 'list') {
-                document.getElementById('ps-list').innerHTML = sorted.map(psRowHtml).join('');
+            if(view==='top5'){
+                const cats=getCategories(sorted);
+                const cat=cats[catIdx%cats.length];
+                const men=sorted.filter(r=>r.gender==='M'&&(cat===null||r.ageCategory===cat));
+                const women=sorted.filter(r=>r.gender==='K'&&(cat===null||r.ageCategory===cat));
+                const label=cat?cat:'Generalna';
+                document.getElementById('top5-grid').innerHTML=
+                    top5CardHtml('👨 Mężczyźni — '+label, men, '#60a5fa')+
+                    top5CardHtml('👩 Kobiety — '+label, women, '#f472b6');
             }
         }
 
-        function psStartScroll() {
-            const wrap = document.getElementById('ps-scroll-wrap');
-            psScrollPos = 0;
-            function step() {
-                psScrollPos += 0.5;
-                const content = document.getElementById('ps-scroll-content');
-                if (content && psScrollPos >= content.offsetHeight - wrap.offsetHeight + 50) psScrollPos = 0;
-                wrap.scrollTop = psScrollPos;
-                psScrollRaf = requestAnimationFrame(step);
+        function startFlow(){
+            const wrap=document.getElementById('flow-wrap');
+            flowPos=0;
+            function step(){
+                flowPos+=0.6;
+                const inner=document.getElementById('flow-list');
+                if(inner&&flowPos>=inner.offsetHeight-wrap.offsetHeight+40) flowPos=0;
+                wrap.scrollTop=flowPos;
+                flowRaf=requestAnimationFrame(step);
             }
-            psScrollRaf = requestAnimationFrame(step);
+            flowRaf=requestAnimationFrame(step);
         }
 
-        function psUpdateTimer() {
-            if (!psData || !psData.gunStart) return;
-            const gs = psData.gunStart < 10000000000 ? psData.gunStart * 1000 : psData.gunStart;
-            const el = Math.floor((Date.now() - gs) / 1000);
-            if (el < 0) return;
-            const h = String(Math.floor(el/3600)).padStart(2,'0');
-            const m = String(Math.floor((el%3600)/60)).padStart(2,'0');
-            const s = String(el%60).padStart(2,'0');
-            document.getElementById('ps-timer').textContent = h+':'+m+':'+s;
+        function startCat(){
+            catTimer=setInterval(()=>{catIdx++;render();},10000);
         }
 
-        // Wczytaj dane natychmiast z localStorage (brak opóźnienia)
-        try {
-            const stored = localStorage.getItem('yogo_lap_data');
-            if (stored) { psData = JSON.parse(stored); psRender(); }
-        } catch(e) {}
+        function updateTimer(){
+            if(!D||!D.gunStart) return;
+            const gs=D.gunStart<10000000000?D.gunStart*1000:D.gunStart;
+            const el=Math.floor((Date.now()-gs)/1000);
+            if(el<0) return;
+            document.getElementById('timer').textContent=String(Math.floor(el/3600)).padStart(2,'0')+':'+String(Math.floor((el%3600)/60)).padStart(2,'0')+':'+String(el%60).padStart(2,'0');
+        }
 
-        const bc = new BroadcastChannel('yogo_lap_results');
-        bc.onmessage = (e) => {
-            if (e.data && e.data.type === 'results_update') {
-                psData = e.data;
-                try { localStorage.setItem('yogo_lap_data', JSON.stringify(e.data)); } catch(err) {}
-                psRender();
-            }
-        };
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'yogo_lap_data' && e.newValue) {
-                try { psData = JSON.parse(e.newValue); psRender(); } catch(err) {}
-            }
-        });
+        function applyData(data){ D=data; render(); }
 
-        setInterval(() => { psCarouselIdx++; psRender(); }, 5000);
-        setInterval(psUpdateTimer, 1000);
+        try{const s=localStorage.getItem('yogo_lap_data');if(s){applyData(JSON.parse(s));}}catch(e){}
 
-        // Block React from loading
-        document.addEventListener('DOMContentLoaded', () => {
-            const reactRoot = document.getElementById('root');
-            if (reactRoot) reactRoot.style.display = 'none';
-        });
+        const bc=new BroadcastChannel('yogo_lap_results');
+        bc.onmessage=e=>{if(e.data&&e.data.type==='results_update'){applyData(e.data);try{localStorage.setItem('yogo_lap_data',JSON.stringify(e.data));}catch(err){}}};
+        window.addEventListener('storage',e=>{if(e.key==='yogo_lap_data'&&e.newValue){try{applyData(JSON.parse(e.newValue));}catch(err){}}});
+
+        setInterval(updateTimer,1000);
+        sw('flow');
+
+        document.addEventListener('DOMContentLoaded',()=>{const r=document.getElementById('root');if(r)r.style.display='none';});
     }
     </script>
     <div id="root"></div>
@@ -626,9 +632,10 @@
             type: 'results_update',
             participants: participantsData,
             results: results.map(({ lapDetails, ...r }) => r),
-            recentReads: [...chronotrackData].reverse().slice(0, 15).map(r => {
+            recentReads: [...chronotrackData].reverse().slice(0, 20).map(r => {
               const p = participantsData.find(p => p.tag === r.tag);
-              return { tag: r.tag, bib: p ? p.bib : '?', firstName: p ? p.firstName : '', lastName: p ? p.lastName : '', datetime: r.datetime, timestamp: r.timestamp };
+              const res = results.find(res => res.tag === r.tag);
+              return { tag: r.tag, bib: p ? p.bib : '?', firstName: p ? p.firstName : '', lastName: p ? p.lastName : '', laps: res ? res.laps : 0, datetime: r.datetime, timestamp: r.timestamp };
             }),
             gunStart: gunStart,
             lapDistance: lapDistance,
@@ -688,28 +695,21 @@
           };
 
           // ========== HTTP PUBLISH (serwer WWW / CyberFolks) ==========
-          const httpPublishPayloadRef = useRef(null);
+          // Ref zawsze aktualny payload - aktualizowany przy każdej zmianie danych
+          const httpLatestPayloadRef = useRef(null);
+          useEffect(() => {
+            httpLatestPayloadRef.current = buildResultsPayload();
+          }, [results, participantsData, chronotrackData, gunStart, lapDistance, eventName]);
 
+          // Interval publikacji - czyta z ref (brak stale closure)
           useEffect(() => {
             if (!httpPublishEnabled || !httpPublishUrl) return;
-
-            const buildPayload = () => JSON.stringify({
-              type: 'results_update',
-              participants: participantsData,
-              results: results.map(({ lapDetails, ...r }) => r),
-              recentReads: [...chronotrackData].reverse().slice(0, 15).map(r => {
-                const p = participantsData.find(p => p.tag === r.tag);
-                return { tag: r.tag, bib: p ? p.bib : '?', firstName: p ? p.firstName : '', lastName: p ? p.lastName : '', datetime: r.datetime, timestamp: r.timestamp };
-              }),
-              gunStart: gunStart,
-              lapDistance: lapDistance,
-              eventName: eventName
-            });
+            let lastSentPayload = null;
 
             const doPublish = (force) => {
-              const payload = buildPayload();
-              if (!force && payload === httpPublishPayloadRef.current) return;
-              httpPublishPayloadRef.current = payload;
+              const payload = JSON.stringify(httpLatestPayloadRef.current);
+              if (!force && payload === lastSentPayload) return;
+              lastSentPayload = payload;
               const eventParam = httpEventId ? '&event=' + encodeURIComponent(httpEventId) : '';
               const url = httpPublishUrl + (httpPublishUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(httpPublishToken) + eventParam;
               fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: payload })
@@ -721,11 +721,11 @@
                 .catch(() => setHttpPublishStatus('error'));
             };
 
-            doPublish(false); // wyślij od razu jeśli zmiana
-            const intervalChange = setInterval(() => doPublish(false), 3000); // co 3s sprawdź zmiany
-            const intervalForce  = setInterval(() => doPublish(true),  30000); // co 30s wymuś wysłanie
-            return () => { clearInterval(intervalChange); clearInterval(intervalForce); };
-          }, [httpPublishEnabled, httpPublishUrl, httpPublishToken, httpEventId, results, participantsData, chronotrackData, gunStart, lapDistance, eventName]);
+            doPublish(true); // wyślij od razu
+            const t1 = setInterval(() => doPublish(false), 3000);  // co 3s - przy zmianie
+            const t2 = setInterval(() => doPublish(true),  20000); // co 20s - wymuszony
+            return () => { clearInterval(t1); clearInterval(t2); };
+          }, [httpPublishEnabled, httpPublishUrl, httpPublishToken, httpEventId]);
 
           // ========== FILE UPLOADS ==========
           

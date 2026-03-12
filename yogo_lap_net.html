@@ -8,261 +8,218 @@
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background: linear-gradient(135deg, #111827, #1e3a5f, #4a1d96); color: white; font-family: system-ui, -apple-system, sans-serif; height: 100vh; overflow: hidden; }
 
-        #ps-header { background: rgba(0,0,0,0.4); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px); }
-        #ps-header .title { font-size: 22px; font-weight: 900; }
-        #ps-header .event { font-size: 18px; font-weight: 700; color: #86efac; flex: 1; text-align: center; }
-        #ps-header .timer-block { text-align: right; }
-        #ps-header .timer-label { font-size: 11px; color: #9ca3af; }
-        #ps-header .timer { font-size: 30px; font-family: monospace; font-weight: 900; color: #4ade80; }
+        /* HEADER */
+        #hdr { background: rgba(0,0,0,0.45); padding: 10px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        #hdr .title { font-size: 20px; font-weight: 900; }
+        #hdr .evname { font-size: 17px; font-weight: 700; color: #86efac; flex: 1; text-align: center; }
+        #hdr .tlabel { font-size: 10px; color: #9ca3af; text-align: right; }
+        #hdr .timer { font-size: 28px; font-family: monospace; font-weight: 900; color: #4ade80; }
+        #hdr .live { margin-left: 12px; padding: 3px 9px; background: #dc2626; border-radius: 9999px; font-size: 11px; font-weight: 700; animation: pulse 2s infinite; }
 
-        #ps-tabs { display: flex; gap: 8px; padding: 8px 28px; background: rgba(0,0,0,0.25); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        #ps-tabs button { padding: 7px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
-        #ps-tabs button.active { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.45); color: white; }
-        #ps-tabs button:hover { background: rgba(255,255,255,0.15); }
+        /* TABS */
+        #tabs { display: flex; gap: 8px; padding: 7px 24px; background: rgba(0,0,0,0.25); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        #tabs button { padding: 6px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); cursor: pointer; font-size: 13px; font-weight: 600; transition: all .2s; }
+        #tabs button.active { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.45); color: white; }
+        #tabs button:hover { background: rgba(255,255,255,0.15); }
 
-        #ps-content { height: calc(100vh - 93px); overflow: hidden; padding: 14px 24px; }
+        /* CONTENT */
+        #content { height: calc(100vh - 88px); overflow: hidden; padding: 12px 20px; }
+        .sec { display: none; height: 100%; }
+        .sec.active { display: flex; flex-direction: column; }
 
-        .ps-section { display: none; height: 100%; }
-        .ps-section.active { display: flex; flex-direction: column; }
+        /* RESULT ROWS */
+        .row { display: flex; align-items: center; padding: 8px 12px; margin-bottom: 3px; background: rgba(255,255,255,0.07); border-radius: 8px; border-left: 4px solid #6b7280; }
+        .row.M { border-left-color: #60a5fa; }
+        .row.K { border-left-color: #f472b6; }
+        .row .rpos { font-size: 15px; font-weight: 700; width: 32px; text-align: center; color: #9ca3af; }
+        .row .rbib { font-size: 28px; font-weight: 900; width: 54px; text-align: center; }
+        .row .rname { flex: 1; font-size: 15px; font-weight: 600; padding: 0 10px; }
+        .row .rlaps { font-size: 26px; font-weight: 900; font-family: monospace; width: 52px; text-align: right; }
+        .row .rdist { font-size: 13px; font-weight: 600; width: 76px; text-align: right; color: #d1d5db; }
 
-        /* TOP 5 CAROUSEL */
-        #sec-carousel .top-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-        .top5-card { background: rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.15); min-height: 90px; display: flex; align-items: center; }
-        #sec-carousel .list-wrap { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent; }
+        /* META PANEL */
+        #meta-panel { background: rgba(245,158,11,0.1); border-radius: 10px; padding: 10px 12px; border: 1px solid rgba(245,158,11,0.3); width: 280px; min-width: 280px; overflow-y: auto; }
+        #meta-panel h3 { font-size: 12px; font-weight: 700; color: #f59e0b; margin-bottom: 7px; }
+        .mrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; margin-bottom: 3px; background: rgba(255,255,255,0.06); border-radius: 7px; border-left: 3px solid #f59e0b; }
+        .mrow .mbib { font-size: 20px; font-weight: 900; width: 42px; text-align: center; }
+        .mrow .mname { flex: 1; font-size: 13px; font-weight: 600; }
+        .mrow .mlaps { font-size: 18px; font-weight: 900; font-family: monospace; color: #fbbf24; }
 
-        /* SCROLL & LIST */
-        #sec-scroll .scroll-outer { flex: 1; overflow: hidden; }
-        #sec-list .list-wrap { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent; }
+        /* TOP 5 */
+        #top5-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .t5card { background: rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.15); }
+        .t5card h3 { font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+        .t5row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; margin-bottom: 4px; background: rgba(255,255,255,0.07); border-radius: 7px; }
+        .t5row .p { font-size: 14px; font-weight: 700; width: 22px; color: #9ca3af; }
+        .t5row .b { font-size: 24px; font-weight: 900; width: 46px; text-align: center; }
+        .t5row .n { flex: 1; font-size: 14px; font-weight: 600; }
+        .t5row .l { font-size: 22px; font-weight: 900; font-family: monospace; }
+        .t5row .d { font-size: 12px; color: #d1d5db; width: 64px; text-align: right; }
 
-        /* ROWS */
-        .ps-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; margin-bottom: 4px; background: rgba(255,255,255,0.07); border-radius: 9px; border-left: 4px solid #6b7280; }
-        .ps-row.male { border-left-color: #60a5fa; }
-        .ps-row.female { border-left-color: #f472b6; }
-        .ps-row .left { display: flex; align-items: center; gap: 10px; }
-        .ps-row .pos { font-size: 16px; font-weight: 700; width: 34px; text-align: center; color: #9ca3af; }
-        .ps-row .bib { font-size: 30px; font-weight: 900; width: 56px; text-align: center; }
-        .ps-row .name { font-size: 16px; font-weight: 600; }
-        .ps-row .right { display: flex; align-items: center; gap: 20px; }
-        .ps-row .laps { text-align: right; }
-        .ps-row .laps .num { font-size: 28px; font-weight: 900; font-family: monospace; }
-        .ps-row .laps .label { font-size: 10px; color: #9ca3af; }
-        .ps-row .dist { font-size: 16px; font-weight: 700; width: 90px; text-align: right; color: #d1d5db; }
-
-        /* TOP5 card inner */
-        .card-inner { display: flex; align-items: center; gap: 14px; width: 100%; }
-        .card-inner .c-pos { font-size: 20px; font-weight: 900; color: #d1d5db; min-width: 28px; }
-        .card-inner .c-bib { font-size: 42px; font-weight: 900; min-width: 70px; text-align: center; }
-        .card-inner .c-info { flex: 1; }
-        .card-inner .c-name { font-size: 18px; font-weight: 700; }
-        .card-inner .c-cat { font-size: 12px; color: #9ca3af; }
-        .card-inner .c-stats { text-align: right; }
-        .card-inner .c-laps { font-size: 34px; font-weight: 900; font-family: monospace; }
-        .card-inner .c-label { font-size: 11px; color: #9ca3af; }
-        .card-inner .c-dist { font-size: 16px; font-weight: 700; color: #d1d5db; }
-
-        .live-badge { padding: 4px 10px; background: #dc2626; border-radius: 9999px; font-size: 12px; font-weight: 700; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-        #recent-panel { background: rgba(245,158,11,0.1); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(245,158,11,0.3); min-width: 300px; max-width: 340px; overflow-y: auto; }
-        #recent-panel .rp-title { font-size: 13px; font-weight: 700; color: #f59e0b; margin-bottom: 8px; }
-        .recent-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; margin-bottom: 3px; background: rgba(255,255,255,0.06); border-radius: 7px; border-left: 3px solid #f59e0b; }
-        .recent-row .r-bib { font-size: 20px; font-weight: 900; width: 44px; text-align: center; }
-        .recent-row .r-name { flex: 1; font-size: 13px; font-weight: 600; }
-        .recent-row .r-time { font-size: 11px; color: #9ca3af; font-family: monospace; }
+        /* STATUS */
         #status-bar { position: fixed; bottom: 10px; right: 14px; padding: 5px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
-        .dot-green { background: #22c55e; }
-        .dot-red { background: #ef4444; }
-        .dot-yellow { background: #eab308; }
+        .sdot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
+
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
     </style>
 </head>
 <body>
-    <div id="ps-header">
+    <div id="hdr">
         <div class="title">YO&amp;GO Lap — Wyniki na żywo</div>
-        <div class="event" id="eventName">—</div>
-        <div class="timer-block">
-            <div class="timer-label">Czas od startu</div>
-            <div class="timer" id="timer">--:--:--</div>
-        </div>
-        <div style="margin-left:16px"><span class="live-badge">● LIVE</span></div>
+        <div class="evname" id="evname">—</div>
+        <div><div class="tlabel">Czas od startu</div><div class="timer" id="timer">--:--:--</div></div>
+        <div class="live">● LIVE</div>
     </div>
 
-    <div id="ps-tabs">
-        <button class="active" onclick="psSwitch('carousel')">🏆 Top 5</button>
-        <button onclick="psSwitch('scroll')">📜 Lista płynie</button>
-        <button onclick="psSwitch('list')">📋 Pełna lista</button>
+    <div id="tabs">
+        <button class="active" onclick="sw('flow')">🏃 Wyniki na żywo</button>
+        <button onclick="sw('stand')">📋 Klasyfikacja</button>
+        <button onclick="sw('top5')">🏆 Top 5 kategorie</button>
     </div>
 
-    <div id="ps-content">
-        <div id="sec-carousel" class="ps-section active">
-            <div class="top-cards">
-                <div class="top5-card" id="card-men" style="border-color:rgba(96,165,250,0.4)"><p style="color:#6b7280">Oczekiwanie...</p></div>
-                <div class="top5-card" id="card-women" style="border-color:rgba(244,114,182,0.4)"><p style="color:#6b7280">Oczekiwanie...</p></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 330px;gap:12px;flex:1;overflow:hidden;margin-top:0">
-                <div class="list-wrap" id="carousel-list"></div>
-                <div id="recent-panel"><div class="rp-title">⏱ Ostatnie odczyty z mety</div><div id="recent-list"></div></div>
+    <div id="content">
+        <!-- Tab 1: flowing results + meta -->
+        <div id="sec-flow" class="sec active">
+            <div style="display:flex;gap:12px;height:100%;overflow:hidden">
+                <div style="flex:1;overflow:hidden" id="flow-wrap"><div id="flow-list"></div></div>
+                <div id="meta-panel"><h3>⏱ Meta</h3><div id="meta-list"></div></div>
             </div>
         </div>
 
-        <div id="sec-scroll" class="ps-section">
-            <div class="scroll-outer" id="scroll-outer">
-                <div id="scroll-content"></div>
-            </div>
+        <!-- Tab 2: static standings -->
+        <div id="sec-stand" class="sec">
+            <div style="overflow-y:auto;height:100%" id="stand-list"></div>
         </div>
 
-        <div id="sec-list" class="ps-section">
-            <div class="list-wrap" id="list-content"></div>
+        <!-- Tab 3: top 5 by category -->
+        <div id="sec-top5" class="sec">
+            <div id="top5-grid">
+                <div class="t5card" id="t5-men"><p style="color:#6b7280">Oczekiwanie...</p></div>
+                <div class="t5card" id="t5-women"><p style="color:#6b7280">Oczekiwanie...</p></div>
+            </div>
         </div>
     </div>
 
     <div id="status-bar">
-        <div class="status-dot dot-yellow" id="status-dot"></div>
-        <span id="status-text">Łączenie...</span>
+        <div class="sdot" id="sdot" style="background:#eab308"></div>
+        <span id="stext">Łączenie...</span>
     </div>
 
     <script>
         // ============================================================
-        // Tryby działania (URL params):
-        //   ?api=https://twojadomena.pl/o_wyniki.php   → HTTP polling
-        //   ?server=ws://192.168.1.x:3002              → WebSocket
-        //   ?mode=local                                 → BroadcastChannel (2. ekran)
+        // Tryby: ?api=URL → HTTP polling | ?server=ws://... → WebSocket
+        //        ?mode=local → BroadcastChannel (2. ekran lokalny)
         // ============================================================
-        const params = new URLSearchParams(window.location.search);
-        const API_URL   = params.get('api');
-        const WS_URL    = params.get('server') || 'ws://192.168.1.100:3002';
-        const LOCAL     = params.get('mode') === 'local';
-        const MODE      = LOCAL ? 'local' : (API_URL ? 'http' : 'ws');
-        const POLL_MS   = 5000;
+        const params  = new URLSearchParams(window.location.search);
+        const API_URL = params.get('api');
+        const WS_URL  = params.get('server') || 'ws://192.168.1.100:3002';
+        const LOCAL   = params.get('mode') === 'local';
+        const MODE    = LOCAL ? 'local' : (API_URL ? 'http' : 'ws');
+        const POLL_MS = 5000;
 
-        let currentData  = null;
-        let psView       = 'carousel';
-        let carouselIdx  = 0;
-        let carouselTick = null;
-        let scrollRaf    = null;
-        let scrollPos    = 0;
+        let D = null;
+        let view = 'flow';
+        let flowRaf = null, flowPos = 0;
+        let catIdx = 0, catTimer = null;
 
-        // ---------- STATUS BAR ----------
+        // ---------- STATUS ----------
         function setStatus(state, text) {
-            const dot = document.getElementById('status-dot');
-            dot.className = 'status-dot ' + (state === 'ok' ? 'dot-green' : state === 'warn' ? 'dot-yellow' : 'dot-red');
-            document.getElementById('status-text').textContent = text;
+            const col = state==='ok' ? '#22c55e' : state==='warn' ? '#eab308' : '#ef4444';
+            document.getElementById('sdot').style.background = col;
+            document.getElementById('stext').textContent = text;
         }
 
         // ---------- TAB SWITCH ----------
-        function psSwitch(v) {
-            psView = v;
-            document.querySelectorAll('#ps-tabs button').forEach((b, i) => {
-                b.classList.toggle('active', ['carousel','scroll','list'][i] === v);
-            });
-            ['carousel','scroll','list'].forEach(s => {
-                const el = document.getElementById('sec-' + s);
-                el.classList.toggle('active', s === v);
-            });
-            if (scrollRaf) { cancelAnimationFrame(scrollRaf); scrollRaf = null; }
-            if (v === 'scroll') startScroll();
-            renderAll();
+        function sw(v) {
+            view = v;
+            document.querySelectorAll('#tabs button').forEach((b,i)=>b.classList.toggle('active',['flow','stand','top5'][i]===v));
+            document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+            document.getElementById('sec-'+v).classList.add('active');
+            if (flowRaf) { cancelAnimationFrame(flowRaf); flowRaf = null; }
+            if (catTimer) { clearInterval(catTimer); catTimer = null; }
+            render();
+            if (v==='flow') startFlow();
+            if (v==='top5') startCat();
         }
 
         // ---------- ROW HTML ----------
-        function rowHtml(r, idx) {
-            const bib  = r.bibNumber || r.bib || '?';
-            const name = (r.firstName || '') + ' ' + (r.lastName || '');
-            const laps = r.lapsCount || r.laps || 0;
-            const dist = parseFloat(r.totalDistance || r.distance || 0).toFixed(2);
-            const gc   = r.gender === 'K' ? 'female' : 'male';
-            return `<div class="ps-row ${gc}">
-                <div class="left">
-                    <div class="pos">${idx+1}</div>
-                    <div class="bib">${bib}</div>
-                    <div class="name">${name.trim()}</div>
-                </div>
-                <div class="right">
-                    <div class="laps"><div class="num">${laps}</div><div class="label">okrążenie</div></div>
-                    <div class="dist">${dist} km</div>
-                </div>
-            </div>`;
+        function rowHtml(r, i) {
+            const g = r.gender || '';
+            return `<div class="row ${g}"><div class="rpos">${i+1}</div><div class="rbib">${r.bib||'?'}</div><div class="rname">${r.firstName||''} ${r.lastName||''}</div><div class="rlaps">${r.laps||r.lapsCount||0}</div><div class="rdist">${parseFloat(r.distance||r.totalDistance||0).toFixed(2)} km</div></div>`;
         }
 
-        // ---------- TOP CARD ----------
-        function renderTopCard(elId, sorted, idx, color, labelColor) {
-            const el = document.getElementById(elId);
-            if (!sorted || sorted.length === 0) {
-                el.innerHTML = '<p style="color:#6b7280;text-align:center;flex:1">Brak wyników</p>';
-                return;
-            }
-            const pos = idx % sorted.length;
-            const r   = sorted[pos];
-            const laps = r.lapsCount || r.laps || 0;
-            const dist = parseFloat(r.totalDistance || r.distance || 0).toFixed(2);
-            const name = (r.firstName || '') + ' ' + (r.lastName || '');
-            el.innerHTML = `<div class="card-inner">
-                <div class="c-pos" style="color:${color}">${pos+1}.</div>
-                <div class="c-bib">${r.bibNumber || r.bib || '?'}</div>
-                <div class="c-info">
-                    <div class="c-name" style="color:${labelColor}">${name.trim()}</div>
-                    <div class="c-cat">${r.ageCategory || r.category || ''}</div>
-                </div>
-                <div class="c-stats">
-                    <div class="c-laps">${laps}</div>
-                    <div class="c-label">okrążenie</div>
-                    <div class="c-dist">${dist} km</div>
-                </div>
-            </div>`;
+        // ---------- META HTML ----------
+        function metaHtml(reads) {
+            if (!reads || !reads.length) return '<p style="color:#6b7280;padding:10px;text-align:center">Brak odczytów</p>';
+            return reads.map(r=>`<div class="mrow"><div class="mbib">${r.bib||'?'}</div><div class="mname">${r.firstName||''} ${r.lastName||''}</div><div class="mlaps">${r.laps||0}</div></div>`).join('');
+        }
+
+        // ---------- CATEGORIES ----------
+        function getCategories(sorted) {
+            const cats = new Set();
+            sorted.forEach(r => { if (r.ageCategory) cats.add(r.ageCategory); });
+            const list = [null]; // null = generalna
+            cats.forEach(c => list.push(c));
+            return list;
+        }
+
+        // ---------- TOP 5 CARD ----------
+        function top5Card(title, athletes, color) {
+            if (!athletes || !athletes.length)
+                return `<div class="t5card" style="border-color:${color}40"><h3 style="color:${color}">${title}</h3><p style="color:#6b7280;padding:10px">Brak wyników</p></div>`;
+            return `<div class="t5card" style="border-color:${color}40"><h3 style="color:${color}">${title}</h3>`
+                + athletes.slice(0,5).map((r,i)=>`<div class="t5row"><div class="p">${i+1}.</div><div class="b">${r.bib||'?'}</div><div class="n">${r.firstName||''} ${r.lastName||''}</div><div class="l">${r.laps||r.lapsCount||0}</div><div class="d">${parseFloat(r.distance||r.totalDistance||0).toFixed(2)} km</div></div>`).join('')
+                + `</div>`;
         }
 
         // ---------- RENDER ----------
-        function renderAll() {
-            if (!currentData || !currentData.results) return;
-            const sorted = [...currentData.results].sort((a,b) =>
-                (b.lapsCount||b.laps||0) - (a.lapsCount||a.laps||0)
-            );
-            const men   = sorted.filter(r => r.gender === 'M');
-            const women = sorted.filter(r => r.gender === 'K');
-            const rows  = sorted.map(rowHtml).join('');
+        function render() {
+            if (!D || !D.results) return;
+            const sorted = [...D.results].sort((a,b)=>(b.laps||b.lapsCount||0)-(a.laps||a.lapsCount||0));
+            if (D.eventName) document.getElementById('evname').textContent = D.eventName;
 
-            if (psView === 'carousel') {
-                renderTopCard('card-men',   men,   carouselIdx, '#93c5fd', '#93c5fd');
-                renderTopCard('card-women', women, carouselIdx, '#f9a8d4', '#f9a8d4');
-                document.getElementById('carousel-list').innerHTML = rows;
-                // Recent reads
-                const rr = currentData.recentReads || [];
-                document.getElementById('recent-list').innerHTML = rr.length === 0
-                    ? '<p style="color:#6b7280;text-align:center;padding:12px">Brak odczytów</p>'
-                    : rr.map(r => `<div class="recent-row"><div class="r-bib">${r.bib||'?'}</div><div class="r-name">${(r.firstName||'')} ${(r.lastName||'')}</div><div class="r-time">${r.datetime||''}</div></div>`).join('');
+            if (view === 'flow') {
+                document.getElementById('flow-list').innerHTML = sorted.map(rowHtml).join('');
+                document.getElementById('meta-list').innerHTML = metaHtml(D.recentReads);
             }
-            if (psView === 'scroll') {
-                document.getElementById('scroll-content').innerHTML = rows;
+            if (view === 'stand') {
+                document.getElementById('stand-list').innerHTML = sorted.map(rowHtml).join('');
             }
-            if (psView === 'list') {
-                document.getElementById('list-content').innerHTML = rows;
+            if (view === 'top5') {
+                const cats = getCategories(sorted);
+                const cat  = cats[catIdx % cats.length];
+                const label = cat || 'Generalna';
+                const men   = sorted.filter(r => r.gender==='M' && (cat===null || r.ageCategory===cat));
+                const women = sorted.filter(r => r.gender==='K' && (cat===null || r.ageCategory===cat));
+                document.getElementById('top5-grid').innerHTML =
+                    top5Card('👨 Mężczyźni — ' + label, men, '#60a5fa') +
+                    top5Card('👩 Kobiety — '   + label, women, '#f472b6');
             }
         }
 
-        // ---------- CAROUSEL TICK ----------
-        function startCarousel() {
-            if (carouselTick) clearInterval(carouselTick);
-            carouselTick = setInterval(() => { carouselIdx++; renderAll(); }, 5000);
-        }
-
-        // ---------- AUTO SCROLL ----------
-        function startScroll() {
-            const outer = document.getElementById('scroll-outer');
-            scrollPos = 0;
+        // ---------- AUTO SCROLL (tab 1) ----------
+        function startFlow() {
+            const wrap = document.getElementById('flow-wrap');
+            flowPos = 0;
             function step() {
-                scrollPos += 0.6;
-                const inner = document.getElementById('scroll-content');
-                if (inner && scrollPos >= inner.offsetHeight - outer.offsetHeight + 60) scrollPos = 0;
-                outer.scrollTop = scrollPos;
-                scrollRaf = requestAnimationFrame(step);
+                flowPos += 0.6;
+                const inner = document.getElementById('flow-list');
+                if (inner && flowPos >= inner.offsetHeight - wrap.offsetHeight + 40) flowPos = 0;
+                wrap.scrollTop = flowPos;
+                flowRaf = requestAnimationFrame(step);
             }
-            scrollRaf = requestAnimationFrame(step);
+            flowRaf = requestAnimationFrame(step);
+        }
+
+        // ---------- CATEGORY CYCLE (tab 3) ----------
+        function startCat() {
+            catTimer = setInterval(() => { catIdx++; render(); }, 10000);
         }
 
         // ---------- TIMER ----------
         function updateTimer() {
-            if (!currentData || !currentData.gunStart) return;
-            const gs = currentData.gunStart < 10000000000 ? currentData.gunStart * 1000 : currentData.gunStart;
+            if (!D || !D.gunStart) return;
+            const gs = D.gunStart < 10000000000 ? D.gunStart*1000 : D.gunStart;
             const el = Math.floor((Date.now() - gs) / 1000);
             if (el < 0) return;
             document.getElementById('timer').textContent =
@@ -271,22 +228,16 @@
                 String(el%60).padStart(2,'0');
         }
 
-        // ---------- APPLY DATA ----------
-        function applyData(data) {
-            currentData = data;
-            if (data.eventName) document.getElementById('eventName').textContent = data.eventName;
-            renderAll();
-            updateTimer();
-        }
+        function applyData(data) { D = data; render(); }
 
         setInterval(updateTimer, 1000);
-        startCarousel();
+        sw('flow'); // init
 
         // ============================================================
-        // TRYBY POŁĄCZENIA
+        // CONNECTIONS
         // ============================================================
 
-        // --- HTTP POLLING ---
+        // HTTP POLLING
         function pollHttp() {
             fetch(API_URL, { cache: 'no-store' })
                 .then(r => r.json())
@@ -297,55 +248,29 @@
                 .catch(() => setStatus('err', 'Brak połączenia'));
         }
 
-        // --- WEBSOCKET ---
+        // WEBSOCKET
         let ws = null;
         function connectWS() {
             ws = new WebSocket(WS_URL);
-            ws.onopen = () => {
-                setStatus('ok', 'Połączono (WS)');
-                ws.send(JSON.stringify({ type: 'request_results' }));
-            };
-            ws.onmessage = e => {
-                try {
-                    const d = JSON.parse(e.data);
-                    if (d.type === 'results_update') applyData(d);
-                } catch {}
-            };
-            ws.onclose = () => {
-                setStatus('err', 'Rozłączono, ponawianie...');
-                setTimeout(connectWS, 3000);
-            };
+            ws.onopen  = () => { setStatus('ok', 'Połączono (WS)'); ws.send(JSON.stringify({type:'request_results'})); };
+            ws.onmessage = e => { try { const d=JSON.parse(e.data); if(d.type==='results_update') applyData(d); } catch{} };
+            ws.onclose = () => { setStatus('err', 'Rozłączono, ponawianie...'); setTimeout(connectWS, 3000); };
             ws.onerror = () => setStatus('err', 'Błąd WS');
         }
 
-        // --- BROADCASTCHANNEL (lokalny 2. ekran) ---
+        // INIT
         if (MODE === 'local') {
-            // Odczytaj natychmiast z localStorage
-            try {
-                const stored = localStorage.getItem('yogo_lap_data');
-                if (stored) applyData(JSON.parse(stored));
-            } catch(e) {}
+            try { const s=localStorage.getItem('yogo_lap_data'); if(s) applyData(JSON.parse(s)); } catch(e){}
             const bc = new BroadcastChannel('yogo_lap_results');
-            bc.onmessage = e => {
-                if (e.data && e.data.type === 'results_update') applyData(e.data);
-            };
-            window.addEventListener('storage', e => {
-                if (e.key === 'yogo_lap_data' && e.newValue) {
-                    try { applyData(JSON.parse(e.newValue)); } catch(err) {}
-                }
-            });
+            bc.onmessage = e => { if(e.data&&e.data.type==='results_update') applyData(e.data); };
+            window.addEventListener('storage', e => { if(e.key==='yogo_lap_data'&&e.newValue){try{applyData(JSON.parse(e.newValue));}catch(err){}} });
             setStatus('ok', '2. ekran gotowy');
         } else if (MODE === 'http') {
             pollHttp();
             setInterval(pollHttp, POLL_MS);
-            setStatus('warn', 'Łączenie...');
         } else {
             connectWS();
-            setInterval(() => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'request_results' }));
-                }
-            }, POLL_MS);
+            setInterval(() => { if(ws&&ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify({type:'request_results'})); }, POLL_MS);
         }
     </script>
 </body>
