@@ -113,7 +113,7 @@
           ]);
           const [excludeOpenWinners, setExcludeOpenWinners] = useState(false);
           const [openWinnersToExclude, setOpenWinnersToExclude] = useState(3); // Top 3 OPEN wykluczani
-          const [firstReadIsStart, setFirstReadIsStart] = useState(false); // false = pierwszy odczyt = zaliczone okrążenie; true = pierwszy odczyt = start zawodnika
+          const [firstReadIsStart, setFirstReadIsStart] = useState(true); // false = pierwszy odczyt = zaliczone okrążenie; true = pierwszy odczyt = start zawodnika
           
           // WebSocket Bridge (ChronoTrack CCS)
           const [wsConnected, setWsConnected] = useState(false);
