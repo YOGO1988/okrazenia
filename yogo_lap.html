@@ -38,6 +38,8 @@
             .top5-card { background: rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; }
             #ps-list { overflow-y: auto; height: 100%; }
             #ps-scroll-wrap { overflow: hidden; height: 100%; }
+            #ps-recent { background: rgba(245,158,11,0.1); border-radius: 10px; padding: 10px; border: 1px solid rgba(245,158,11,0.3); margin-top: 10px; }
+            #ps-recent-title { font-size: 13px; font-weight: 700; color: #f59e0b; margin-bottom: 6px; }
             .ps-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin-bottom: 4px; background: rgba(255,255,255,0.07); border-radius: 8px; }
             .ps-row .pos { font-size: 18px; font-weight: bold; width: 40px; text-align: center; color: #9ca3af; }
             .ps-row .bib { font-size: 32px; font-weight: 900; width: 60px; text-align: center; }
@@ -63,7 +65,10 @@
         <div id="ps-content">
             <div id="sec-carousel" class="ps-section active">
                 <div id="ps-top5"><div class="top5-card" id="ps-men"><p style="color:#9ca3af;text-align:center;padding:20px">Oczekiwanie...</p></div><div class="top5-card" id="ps-women"><p style="color:#9ca3af;text-align:center;padding:20px">Oczekiwanie...</p></div></div>
-                <div id="ps-carousel-list" style="margin-top:16px;overflow-y:auto;height:calc(100% - 140px)"></div>
+                <div style="display:grid;grid-template-columns:1fr 340px;gap:12px;margin-top:12px;height:calc(100% - 140px)">
+                    <div id="ps-carousel-list" style="overflow-y:auto"></div>
+                    <div id="ps-recent"><div id="ps-recent-title">⏱ Ostatnie odczyty z mety</div><div id="ps-recent-list"></div></div>
+                </div>
             </div>
             <div id="sec-scroll" class="ps-section"><div id="ps-scroll-wrap"><div id="ps-scroll-content"></div></div></div>
             <div id="sec-list" class="ps-section"><div id="ps-list"></div></div>
@@ -97,6 +102,16 @@
                 +'</div>';
         }
 
+        function psRecentHtml(reads) {
+            if (!reads || reads.length === 0) return '<p style="color:#6b7280;text-align:center;padding:12px">Brak odczytów</p>';
+            return reads.map(r => '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;margin-bottom:3px;background:rgba(255,255,255,0.06);border-radius:7px;border-left:3px solid #f59e0b">'
+                +'<div style="font-size:22px;font-weight:900;width:48px;text-align:center">'+(r.bib||'?')+'</div>'
+                +'<div style="flex:1;font-size:14px;font-weight:600">'+(r.firstName||'')+' '+(r.lastName||'')+'</div>'
+                +'<div style="font-size:12px;color:#9ca3af;font-family:monospace">'+(r.datetime||'')+'</div>'
+                +'</div>'
+            ).join('');
+        }
+
         function psRender() {
             if (!psData || !psData.results) return;
             const sorted = [...psData.results].sort((a,b)=>(b.laps||b.lapsCount||0)-(a.laps||a.lapsCount||0));
@@ -111,6 +126,8 @@
                 document.getElementById('ps-men').innerHTML = r ? '<div style="font-size:12px;color:#93c5fd;font-weight:700;margin-bottom:8px">MĘŻCZYŹNI #'+(psCarouselIdx%men.length+1)+'/'+men.length+'</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:48px;font-weight:900">'+(r.bib||'?')+'</div><div style="flex:1"><div style="font-size:20px;font-weight:700;color:#93c5fd">'+(r.firstName||'')+' '+(r.lastName||'')+'</div></div><div style="text-align:right"><div style="font-size:36px;font-weight:900">'+(r.laps||0)+'</div><div style="font-size:11px;color:#9ca3af">okrążenie</div><div style="font-size:16px;font-weight:700">'+parseFloat(r.distance||0).toFixed(2)+' km</div></div></div>' : '<p style="color:#9ca3af;text-align:center;padding:20px">Brak wyników</p>';
                 document.getElementById('ps-women').innerHTML = rw ? '<div style="font-size:12px;color:#f9a8d4;font-weight:700;margin-bottom:8px">KOBIETY #'+(psCarouselIdx%women.length+1)+'/'+women.length+'</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:48px;font-weight:900">'+(rw.bib||'?')+'</div><div style="flex:1"><div style="font-size:20px;font-weight:700;color:#f9a8d4">'+(rw.firstName||'')+' '+(rw.lastName||'')+'</div></div><div style="text-align:right"><div style="font-size:36px;font-weight:900">'+(rw.laps||0)+'</div><div style="font-size:11px;color:#9ca3af">okrążenie</div><div style="font-size:16px;font-weight:700">'+parseFloat(rw.distance||0).toFixed(2)+' km</div></div></div>' : '<p style="color:#9ca3af;text-align:center;padding:20px">Brak wyników</p>';
                 document.getElementById('ps-carousel-list').innerHTML = sorted.map(psRowHtml).join('');
+                const rr = document.getElementById('ps-recent-list');
+                if (rr) rr.innerHTML = psRecentHtml(psData.recentReads);
             }
             if (psView === 'scroll') {
                 document.getElementById('ps-scroll-content').innerHTML = sorted.map(psRowHtml).join('');
@@ -144,13 +161,25 @@
             document.getElementById('ps-timer').textContent = h+':'+m+':'+s;
         }
 
+        // Wczytaj dane natychmiast z localStorage (brak opóźnienia)
+        try {
+            const stored = localStorage.getItem('yogo_lap_data');
+            if (stored) { psData = JSON.parse(stored); psRender(); }
+        } catch(e) {}
+
         const bc = new BroadcastChannel('yogo_lap_results');
         bc.onmessage = (e) => {
             if (e.data && e.data.type === 'results_update') {
                 psData = e.data;
+                try { localStorage.setItem('yogo_lap_data', JSON.stringify(e.data)); } catch(err) {}
                 psRender();
             }
         };
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'yogo_lap_data' && e.newValue) {
+                try { psData = JSON.parse(e.newValue); psRender(); } catch(err) {}
+            }
+        });
 
         setInterval(() => { psCarouselIdx++; psRender(); }, 5000);
         setInterval(psUpdateTimer, 1000);
@@ -597,6 +626,10 @@
             type: 'results_update',
             participants: participantsData,
             results: results.map(({ lapDetails, ...r }) => r),
+            recentReads: [...chronotrackData].reverse().slice(0, 15).map(r => {
+              const p = participantsData.find(p => p.tag === r.tag);
+              return { tag: r.tag, bib: p ? p.bib : '?', firstName: p ? p.firstName : '', lastName: p ? p.lastName : '', datetime: r.datetime, timestamp: r.timestamp };
+            }),
             gunStart: gunStart,
             lapDistance: lapDistance,
             eventName: eventName
@@ -607,12 +640,13 @@
             // WebSocket broadcast server
             if (resultsWsRef.current && resultsWsRef.current.readyState === WebSocket.OPEN) {
               resultsWsRef.current.send(JSON.stringify(updateData));
-              console.log('📤 Wysłano aktualizację wyników');
             }
             // BroadcastChannel - drugie okno/ekran
             if (bcRef.current) {
               bcRef.current.postMessage(updateData);
             }
+            // localStorage - natychmiastowe dane dla 2. ekranu po otwarciu
+            try { localStorage.setItem('yogo_lap_data', JSON.stringify(updateData)); } catch(e) {}
           };
 
           // Auto-broadcast results on change (BroadcastChannel + WebSocket jeśli połączony)
@@ -654,48 +688,44 @@
           };
 
           // ========== HTTP PUBLISH (serwer WWW / CyberFolks) ==========
-          const lastPublishedRef = useRef(null);
+          const httpPublishPayloadRef = useRef(null);
 
           useEffect(() => {
             if (!httpPublishEnabled || !httpPublishUrl) return;
 
-            const doPublish = () => {
-              const payload = JSON.stringify({
-                type: 'results_update',
-                participants: participantsData,
-                results: results.map(({ lapDetails, ...r }) => r),
-                gunStart: gunStart,
-                lapDistance: lapDistance,
-                eventName: eventName
-              });
+            const buildPayload = () => JSON.stringify({
+              type: 'results_update',
+              participants: participantsData,
+              results: results.map(({ lapDetails, ...r }) => r),
+              recentReads: [...chronotrackData].reverse().slice(0, 15).map(r => {
+                const p = participantsData.find(p => p.tag === r.tag);
+                return { tag: r.tag, bib: p ? p.bib : '?', firstName: p ? p.firstName : '', lastName: p ? p.lastName : '', datetime: r.datetime, timestamp: r.timestamp };
+              }),
+              gunStart: gunStart,
+              lapDistance: lapDistance,
+              eventName: eventName
+            });
 
-              if (payload === lastPublishedRef.current) return; // brak zmian
-              lastPublishedRef.current = payload;
-
+            const doPublish = (force) => {
+              const payload = buildPayload();
+              if (!force && payload === httpPublishPayloadRef.current) return;
+              httpPublishPayloadRef.current = payload;
               const eventParam = httpEventId ? '&event=' + encodeURIComponent(httpEventId) : '';
               const url = httpPublishUrl + (httpPublishUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(httpPublishToken) + eventParam;
-
-              fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: payload
-              })
+              fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: payload })
                 .then(r => r.json())
                 .then(data => {
-                  if (data.ok) {
-                    setHttpPublishStatus('ok');
-                    setHttpPublishLastAt(new Date());
-                  } else {
-                    setHttpPublishStatus('error');
-                  }
+                  if (data.ok) { setHttpPublishStatus('ok'); setHttpPublishLastAt(new Date()); }
+                  else setHttpPublishStatus('error');
                 })
                 .catch(() => setHttpPublishStatus('error'));
             };
 
-            doPublish(); // wyślij od razu przy zmianie
-            const interval = setInterval(doPublish, 5000); // i co 5s na wszelki wypadek
-            return () => clearInterval(interval);
-          }, [httpPublishEnabled, httpPublishUrl, httpPublishToken, httpEventId, results, participantsData, gunStart, lapDistance, eventName]);
+            doPublish(false); // wyślij od razu jeśli zmiana
+            const intervalChange = setInterval(() => doPublish(false), 3000); // co 3s sprawdź zmiany
+            const intervalForce  = setInterval(() => doPublish(true),  30000); // co 30s wymuś wysłanie
+            return () => { clearInterval(intervalChange); clearInterval(intervalForce); };
+          }, [httpPublishEnabled, httpPublishUrl, httpPublishToken, httpEventId, results, participantsData, chronotrackData, gunStart, lapDistance, eventName]);
 
           // ========== FILE UPLOADS ==========
           
