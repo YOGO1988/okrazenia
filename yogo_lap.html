@@ -318,7 +318,7 @@
           };
 
           const handleLiveReading = (data) => {
-            const tag = data.tag;
+            const tag = data.tag ? data.tag.trim().replace(/\r/g, '') : data.tag;
             const timeStr = data.time;
             const timestamp = data.timestamp;
             

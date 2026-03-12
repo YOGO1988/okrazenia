@@ -1,0 +1,16 @@
+# Wgraj ten plik jako .htaccess do folderu lap/ na serwerze
+# (domenyCyberFolks/public_html/lap/.htaccess)
+
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, X-Token"
+</IfModule>
+
+# Zezwól na metode OPTIONS (preflight CORS)
+<LimitExcept OPTIONS>
+</LimitExcept>
+
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
