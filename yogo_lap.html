@@ -108,8 +108,8 @@
                 const women = sorted.filter(r=>r.gender==='K').slice(0,5);
                 const r = men[psCarouselIdx % Math.max(men.length,1)];
                 const rw = women[psCarouselIdx % Math.max(women.length,1)];
-                document.getElementById('ps-men').innerHTML = r ? '<div style="font-size:12px;color:#93c5fd;font-weight:700;margin-bottom:8px">MĘŻCZYŹNI #'+(psCarouselIdx%men.length+1)+'/'+men.length+'</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:48px;font-weight:900">'+(r.bib||'?')+'</div><div style="flex:1"><div style="font-size:20px;font-weight:700;color:#93c5fd">'+(r.firstName||'')+' '+(r.lastName||'')+'</div></div><div style="text-align:right"><div style="font-size:36px;font-weight:900">'+(r.laps||0)+'</div><div style="font-size:11px;color:#9ca3af">okrążeń</div><div style="font-size:16px;font-weight:700">'+parseFloat(r.distance||0).toFixed(2)+' km</div></div></div>' : '<p style="color:#9ca3af;text-align:center;padding:20px">Brak wyników</p>';
-                document.getElementById('ps-women').innerHTML = rw ? '<div style="font-size:12px;color:#f9a8d4;font-weight:700;margin-bottom:8px">KOBIETY #'+(psCarouselIdx%women.length+1)+'/'+women.length+'</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:48px;font-weight:900">'+(rw.bib||'?')+'</div><div style="flex:1"><div style="font-size:20px;font-weight:700;color:#f9a8d4">'+(rw.firstName||'')+' '+(rw.lastName||'')+'</div></div><div style="text-align:right"><div style="font-size:36px;font-weight:900">'+(rw.laps||0)+'</div><div style="font-size:11px;color:#9ca3af">okrążeń</div><div style="font-size:16px;font-weight:700">'+parseFloat(rw.distance||0).toFixed(2)+' km</div></div></div>' : '<p style="color:#9ca3af;text-align:center;padding:20px">Brak wyników</p>';
+                document.getElementById('ps-men').innerHTML = r ? '<div style="font-size:12px;color:#93c5fd;font-weight:700;margin-bottom:8px">MĘŻCZYŹNI #'+(psCarouselIdx%men.length+1)+'/'+men.length+'</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:48px;font-weight:900">'+(r.bib||'?')+'</div><div style="flex:1"><div style="font-size:20px;font-weight:700;color:#93c5fd">'+(r.firstName||'')+' '+(r.lastName||'')+'</div></div><div style="text-align:right"><div style="font-size:36px;font-weight:900">'+(r.laps||0)+'</div><div style="font-size:11px;color:#9ca3af">okrążenie</div><div style="font-size:16px;font-weight:700">'+parseFloat(r.distance||0).toFixed(2)+' km</div></div></div>' : '<p style="color:#9ca3af;text-align:center;padding:20px">Brak wyników</p>';
+                document.getElementById('ps-women').innerHTML = rw ? '<div style="font-size:12px;color:#f9a8d4;font-weight:700;margin-bottom:8px">KOBIETY #'+(psCarouselIdx%women.length+1)+'/'+women.length+'</div><div style="display:flex;align-items:center;gap:12px"><div style="font-size:48px;font-weight:900">'+(rw.bib||'?')+'</div><div style="flex:1"><div style="font-size:20px;font-weight:700;color:#f9a8d4">'+(rw.firstName||'')+' '+(rw.lastName||'')+'</div></div><div style="text-align:right"><div style="font-size:36px;font-weight:900">'+(rw.laps||0)+'</div><div style="font-size:11px;color:#9ca3af">okrążenie</div><div style="font-size:16px;font-weight:700">'+parseFloat(rw.distance||0).toFixed(2)+' km</div></div></div>' : '<p style="color:#9ca3af;text-align:center;padding:20px">Brak wyników</p>';
                 document.getElementById('ps-carousel-list').innerHTML = sorted.map(psRowHtml).join('');
             }
             if (psView === 'scroll') {
@@ -615,21 +615,27 @@
             }
           };
 
-          // Auto-broadcast results on change
+          // Auto-broadcast results on change (BroadcastChannel + WebSocket jeśli połączony)
           useEffect(() => {
-            if (resultsServerConnected) {
-              sendResultsUpdate();
-              console.log('📤 Wysłano wyniki do broadcast server');
-            }
-          }, [results, participantsData, gunStart, lapDistance, eventName, resultsServerConnected]);
+            sendResultsUpdate();
+          }, [results, participantsData, gunStart, lapDistance, eventName]);
 
           // Dodatkowy trigger - przy nowych odczytach
           useEffect(() => {
-            if (resultsServerConnected && chronotrackData.length > 0) {
-              console.log('📤 Nowy odczyt - wysyłam update');
+            if (chronotrackData.length > 0) {
               sendResultsUpdate();
             }
           }, [chronotrackData]);
+
+          // Cykliczny broadcast co 2s - aby 2. ekran dostał dane zaraz po otwarciu
+          useEffect(() => {
+            const interval = setInterval(() => {
+              if (bcRef.current) {
+                bcRef.current.postMessage(buildResultsPayload());
+              }
+            }, 2000);
+            return () => clearInterval(interval);
+          }, [results, participantsData, gunStart, lapDistance, eventName]);
 
           // ========== RACE MANAGEMENT ==========
           const loadRaces = () => {
@@ -1636,7 +1642,7 @@
                               {/* Okrążenia - STAŁA SZEROKOŚĆ */}
                               <div className="text-right w-32">
                                 <div className="text-3xl font-mono font-bold">{r.laps}</div>
-                                <div className="text-sm text-gray-400">okrążeń</div>
+                                <div className="text-sm text-gray-400">okrążenie</div>
                               </div>
                               
                               {/* Dystans - STAŁA SZEROKOŚĆ */}
@@ -1682,7 +1688,7 @@
                             {/* Stats */}
                             <div className="text-right">
                               <div className="text-3xl font-black">{menResults[animatedIndex].laps}</div>
-                              <div className="text-xs text-gray-400">okrążeń</div>
+                              <div className="text-xs text-gray-400">okrążenie</div>
                             </div>
                             <div className="text-right">
                               <div className="text-2xl font-bold">{menResults[animatedIndex].distance} km</div>
@@ -1717,7 +1723,7 @@
                             {/* Stats */}
                             <div className="text-right">
                               <div className="text-3xl font-black">{womenResults[animatedIndex].laps}</div>
-                              <div className="text-xs text-gray-400">okrążeń</div>
+                              <div className="text-xs text-gray-400">okrążenie</div>
                             </div>
                             <div className="text-right">
                               <div className="text-2xl font-bold">{womenResults[animatedIndex].distance} km</div>
@@ -1777,7 +1783,7 @@
                                 {/* Okrążenia - STAŁA SZEROKOŚĆ */}
                                 <div className="text-right w-24">
                                   <div className="text-2xl font-mono font-bold">{r.laps}</div>
-                                  <div className="text-xs text-gray-400">okrążeń</div>
+                                  <div className="text-xs text-gray-400">okrążenie</div>
                                 </div>
                                 {/* Dystans - STAŁA SZEROKOŚĆ */}
                                 <div className="text-right w-32">
