@@ -1,0 +1,2614 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YO&GO Lap - System Liczenia Okrążeń</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect, useRef } = React;
+
+        // SVG Icons
+        const Icons = {
+            Trophy: () => (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+            ),
+            Upload: () => (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+            ),
+            Download: () => (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+            ),
+            Trash: () => (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            ),
+            Plus: () => (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+            ),
+            Minus: () => (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                </svg>
+            ),
+            Wifi: () => (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                </svg>
+            ),
+            WifiOff: () => (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+                </svg>
+            ),
+            Eye: () => (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            ),
+            Gun: () => (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm6 9.09c0 4-2.55 7.7-6 8.83-3.45-1.13-6-4.82-6-8.83v-4.7l6-2.25 6 2.25v4.7z"/>
+                </svg>
+            ),
+            Save: () => (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+            )
+        };
+
+        const LapCounterApp = () => {
+          const [activeTab, setActiveTab] = useState('upload');
+          const [chronotrackData, setChronotrackData] = useState([]);
+          const [participantsData, setParticipantsData] = useState([]);
+          const [gunStart, setGunStart] = useState(null);
+          const [allGunStarts, setAllGunStarts] = useState([]);
+          const [deletedReadings, setDeletedReadings] = useState(new Set());
+          const [minLapTime, setMinLapTime] = useState(40);
+          const [lapDistance, setLapDistance] = useState(1.0);
+          const [customDistance, setCustomDistance] = useState('');
+          
+          // Event settings
+          const [eventName, setEventName] = useState('Wyścig');
+          
+          // Kategorie wiekowe
+          const [ageCategories, setAgeCategories] = useState([
+            { name: 'M20', minAge: 18, maxAge: 29, gender: 'M' },
+            { name: 'M30', minAge: 30, maxAge: 39, gender: 'M' },
+            { name: 'M40', minAge: 40, maxAge: 49, gender: 'M' },
+            { name: 'M50', minAge: 50, maxAge: 59, gender: 'M' },
+            { name: 'M60', minAge: 60, maxAge: 99, gender: 'M' },
+            { name: 'K20', minAge: 18, maxAge: 29, gender: 'K' },
+            { name: 'K30', minAge: 30, maxAge: 39, gender: 'K' },
+            { name: 'K40', minAge: 40, maxAge: 49, gender: 'K' },
+            { name: 'K50', minAge: 50, maxAge: 59, gender: 'K' },
+            { name: 'K60', minAge: 60, maxAge: 99, gender: 'K' }
+          ]);
+          const [excludeOpenWinners, setExcludeOpenWinners] = useState(false);
+          const [openWinnersToExclude, setOpenWinnersToExclude] = useState(3); // Top 3 OPEN wykluczani
+          
+          // WebSocket Bridge (ChronoTrack CCS)
+          const [wsConnected, setWsConnected] = useState(false);
+          const [wsUrl, setWsUrl] = useState('ws://192.168.1.100:8081');
+          const [liveMode, setLiveMode] = useState(false);
+          const [lastReading, setLastReading] = useState(null);
+          const [lastFinisher, setLastFinisher] = useState(null); // Ostatni zawodnik na mecie
+          const wsRef = useRef(null);
+          const reconnectTimeoutRef = useRef(null);
+          
+          // WebSocket Results Server (Broadcast)
+          const [resultsServerUrl, setResultsServerUrl] = useState('ws://192.168.1.100:3002');
+          const [resultsServerConnected, setResultsServerConnected] = useState(false);
+          const resultsWsRef = useRef(null);
+          
+          // Public View Mode
+          const [publicViewMode, setPublicViewMode] = useState(false);
+          const [publicViewType, setPublicViewType] = useState('top5'); // 'top5', 'wyniki', 'meta'
+          
+          // Broadcast View State (MUSI być tutaj, nie w if!)
+          const [currentTime, setCurrentTime] = useState(Date.now());
+          const [scrollPosition, setScrollPosition] = useState(0);
+          const [animatedIndex, setAnimatedIndex] = useState(0); // Który medal w WYNIKI (0-4)
+          const [categoryAnimationIndex, setCategoryAnimationIndex] = useState(0); // Indeks kategorii w TOP5
+          
+          // Auto-save
+          const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+          const [lastSaveTime, setLastSaveTime] = useState(null);
+          
+          // Load data from localStorage on mount
+          useEffect(() => {
+            const saved = localStorage.getItem('yogo_lap_data');
+            if (saved) {
+              try {
+                const data = JSON.parse(saved);
+                if (data.chronotrackData) setChronotrackData(data.chronotrackData);
+                if (data.participantsData) setParticipantsData(data.participantsData);
+                if (data.gunStart) setGunStart(data.gunStart);
+                if (data.deletedReadings) setDeletedReadings(new Set(data.deletedReadings));
+                if (data.lapDistance !== undefined) setLapDistance(data.lapDistance);
+                if (data.minLapTime !== undefined) setMinLapTime(data.minLapTime);
+                if (data.allGunStarts) setAllGunStarts(data.allGunStarts);
+                if (data.eventName) setEventName(data.eventName);
+                if (data.ageCategories) setAgeCategories(data.ageCategories);
+                if (data.excludeOpenWinners !== undefined) setExcludeOpenWinners(data.excludeOpenWinners);
+                if (data.openWinnersToExclude !== undefined) setOpenWinnersToExclude(data.openWinnersToExclude);
+                if (data.customDistance !== undefined) setCustomDistance(data.customDistance);
+                console.log('✅ Dane wczytane z localStorage');
+              } catch (e) {
+                console.error('Błąd wczytywania danych:', e);
+              }
+            }
+          }, []);
+
+          // Auto-save every 30 seconds
+          useEffect(() => {
+            if (!autoSaveEnabled) return;
+            
+            const interval = setInterval(() => {
+              saveToLocalStorage();
+            }, 30000);
+            
+            return () => clearInterval(interval);
+          }, [autoSaveEnabled, chronotrackData, participantsData, gunStart, deletedReadings, lapDistance, minLapTime, allGunStarts, eventName, ageCategories, excludeOpenWinners, openWinnersToExclude, customDistance]);
+
+          // Debug chronotrackData changes
+          useEffect(() => {
+            console.log(`🔄 chronotrackData ZMIENIŁ SIĘ: ${chronotrackData.length} odczytów`);
+            if (chronotrackData.length > 0) {
+              console.log(`   Pierwszy: ${chronotrackData[0].tag} (${chronotrackData[0].datetime})`);
+              console.log(`   Ostatni: ${chronotrackData[chronotrackData.length-1].tag} (${chronotrackData[chronotrackData.length-1].datetime})`);
+            }
+          }, [chronotrackData.length]);
+
+          const saveToLocalStorage = () => {
+            try {
+              const data = {
+                chronotrackData,
+                participantsData,
+                gunStart,
+                deletedReadings: Array.from(deletedReadings),
+                lapDistance,
+                minLapTime,
+                allGunStarts,
+                eventName,
+                ageCategories,
+                excludeOpenWinners,
+                openWinnersToExclude,
+                customDistance,
+                savedAt: new Date().toISOString()
+              };
+              localStorage.setItem('yogo_lap_data', JSON.stringify(data));
+              setLastSaveTime(new Date());
+              console.log('💾 Auto-zapis wykonany');
+            } catch (e) {
+              console.error('Błąd zapisu:', e);
+            }
+          };
+
+          const parseUnixTimestamp = (timestamp) => {
+            const ts = parseFloat(timestamp);
+            return new Date(ts * 1000);
+          };
+
+          // ========== WEBSOCKET BRIDGE (ChronoTrack CCS) ==========
+          const connectWebSocket = () => {
+            if (wsRef.current) {
+              wsRef.current.close();
+            }
+
+            try {
+              console.log('🔌 Łączenie z bridge:', wsUrl);
+              const ws = new WebSocket(wsUrl);
+              wsRef.current = ws;
+
+              ws.onopen = () => {
+                console.log('✅ Połączono z bridge');
+                setWsConnected(true);
+                
+                // Heartbeat - ping co 20s
+                if (ws.pingInterval) clearInterval(ws.pingInterval);
+                ws.pingInterval = setInterval(() => {
+                  if (ws.readyState === WebSocket.OPEN) {
+                    try {
+                      ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+                    } catch (e) {
+                      console.log('⚠️ Ping failed');
+                    }
+                  }
+                }, 20000);
+              };
+
+              ws.onmessage = (event) => {
+                try {
+                  const data = JSON.parse(event.data);
+                  console.log('📨 Bridge message:', data.type);
+                  
+                  if (data.type === 'ccs_reading' && data.tag) {
+                    handleLiveReading(data);
+                  } else if (data.type === 'pong') {
+                    // Heartbeat response - wszystko OK
+                  } else {
+                    console.log('📨 Inne:', data);
+                  }
+                } catch (error) {
+                  console.error('❌ Błąd parsowania:', error);
+                }
+              };
+
+              ws.onerror = (error) => {
+                console.error('❌ Błąd WS:', error.type || 'Unknown');
+                // Nie pokazuj szczegółów błędu bo Event object nie ma message
+              };
+
+              ws.onclose = (event) => {
+                console.log('🔌 Rozłączono z bridge:', event.code, event.reason || 'No reason');
+                setWsConnected(false);
+                
+                // Clear heartbeat
+                if (ws.pingInterval) {
+                  clearInterval(ws.pingInterval);
+                  ws.pingInterval = null;
+                }
+                
+                // Auto-reconnect jeśli live mode
+                if (liveMode) {
+                  console.log('   🔄 Reconnect za 5s...');
+                  reconnectTimeoutRef.current = setTimeout(() => {
+                    connectWebSocket();
+                  }, 5000);
+                }
+              };
+            } catch (error) {
+              console.error('❌ Nie można połączyć:', error);
+              setWsConnected(false);
+            }
+          };
+
+          const disconnectWebSocket = () => {
+            if (reconnectTimeoutRef.current) {
+              clearTimeout(reconnectTimeoutRef.current);
+            }
+            if (wsRef.current) {
+              wsRef.current.close();
+              wsRef.current = null;
+            }
+            setWsConnected(false);
+          };
+
+          const handleLiveReading = (data) => {
+            const tag = data.tag;
+            const timeStr = data.time;
+            const timestamp = data.timestamp;
+            
+            console.log('🔍 OTRZYMANO:', data);
+            
+            setLastReading({ tag, time: timeStr, timestamp });
+
+            const now = new Date(timestamp);
+            const unixTimestamp = now.getTime() / 1000;
+
+            // NOWE: Sprawdź czy to event GUNSTART z bridge'a v1.3
+            if (data.type === 'gunstart') {
+              console.log('🔫 WYKRYTO GUNSTART Z BRIDGE (v1.3)!');
+              console.log(`   Oryginalny tag: ${data.originalTag}, Kanał: ${data.channel}`);
+              console.log(`   Urządzenie: ${data.device}, Sygnał: ${data.signalStrength}dBm`);
+              
+              const gunStartData = {
+                timestamp: data.minitrackTime || unixTimestamp,
+                datetime: now.toLocaleString('pl-PL'),
+                reader: data.device || 'MiniTrack',
+                raw: (data.minitrackTime || unixTimestamp).toFixed(2),
+                originalTag: data.originalTag,
+                channel: data.channel,
+                gunStartId: data.gunStartId,
+                signalStrength: data.signalStrength
+              };
+              setAllGunStarts(prev => [...prev, gunStartData]);
+              setGunStart(data.minitrackTime || unixTimestamp);
+              return;
+            }
+
+            // STARE: Check for GUNSTART (kompatybilność wsteczna)
+            const tagUpper = String(tag).toUpperCase();
+            if (tagUpper.includes('GUNSTART') || tagUpper === 'START' || tagUpper.includes('GUN')) {
+              console.log('🔫 WYKRYTO GUNSTART (stary format)!');
+              const gunStartData = {
+                timestamp: unixTimestamp,
+                datetime: now.toLocaleString('pl-PL'),
+                reader: data.device || data.source || 'MiniTrack',
+                raw: unixTimestamp.toFixed(2)
+              };
+              setAllGunStarts(prev => [...prev, gunStartData]);
+              setGunStart(unixTimestamp);
+              return;
+            }
+
+            const newReading = {
+              id: `${tag}-${unixTimestamp}-${Date.now()}`,
+              tag,
+              timestamp: unixTimestamp,
+              datetime: now.toLocaleString('pl-PL'),
+              reader: data.device || data.source || 'MiniTrack',
+              raw: unixTimestamp.toFixed(2)
+            };
+
+            setChronotrackData(prev => {
+              const updated = [...prev, newReading];
+              
+              // NATYCHMIAST wyślij update do broadcast
+              setTimeout(() => {
+                if (resultsServerConnected) {
+                  console.log('📤 Nowy odczyt - broadcast update');
+                  sendResultsUpdate();
+                }
+              }, 100);
+              
+              return updated.sort((a, b) => a.timestamp - b.timestamp);
+            });
+          };
+
+          useEffect(() => {
+            if (liveMode) {
+              connectWebSocket();
+            } else {
+              disconnectWebSocket();
+            }
+            return () => {
+              disconnectWebSocket();
+            };
+          }, [liveMode, wsUrl]);
+
+          // ========== WEBSOCKET RESULTS SERVER (BROADCAST) ==========
+          const connectResultsServer = () => {
+            if (resultsWsRef.current) {
+              resultsWsRef.current.close();
+            }
+
+            try {
+              const ws = new WebSocket(resultsServerUrl);
+              resultsWsRef.current = ws;
+
+              ws.onopen = () => {
+                console.log('✅ Połączono z serwerem wyników');
+                setResultsServerConnected(true);
+                sendResultsUpdate();
+              };
+
+              ws.onerror = (error) => {
+                console.error('❌ Błąd serwera wyników:', error);
+              };
+
+              ws.onclose = () => {
+                console.log('🔌 Rozłączono z serwera wyników');
+                setResultsServerConnected(false);
+              };
+            } catch (error) {
+              console.error('❌ Nie można połączyć z serwerem wyników:', error);
+              setResultsServerConnected(false);
+            }
+          };
+
+          const disconnectResultsServer = () => {
+            if (resultsWsRef.current) {
+              resultsWsRef.current.close();
+              resultsWsRef.current = null;
+            }
+            setResultsServerConnected(false);
+          };
+
+          const sendResultsUpdate = () => {
+            if (resultsWsRef.current && resultsWsRef.current.readyState === WebSocket.OPEN) {
+              const updateData = {
+                type: 'results_update',
+                participants: participantsData,
+                results: results,
+                gunStart: gunStart,
+                lapDistance: lapDistance,
+                eventName: eventName
+              };
+              resultsWsRef.current.send(JSON.stringify(updateData));
+              console.log('📤 Wysłano aktualizację wyników');
+            }
+          };
+
+          // Auto-broadcast results on change
+          useEffect(() => {
+            if (resultsServerConnected) {
+              sendResultsUpdate();
+              console.log('📤 Wysłano wyniki do broadcast server');
+            }
+          }, [results, participantsData, gunStart, lapDistance, eventName, resultsServerConnected]);
+
+          // Dodatkowy trigger - przy nowych odczytach
+          useEffect(() => {
+            if (resultsServerConnected && chronotrackData.length > 0) {
+              console.log('📤 Nowy odczyt - wysyłam update');
+              sendResultsUpdate();
+            }
+          }, [chronotrackData]);
+
+          // ========== FILE UPLOADS ==========
+          
+          // Parser surowych danych Chronotrack (format TO~)
+          // Oficjalna struktura według Chronotrack:
+          // TO~seq~TAG~timer~event~timestamp~readerMAC~port~RSSI~seqByReader~type~totalReads
+          const parseChronotrackRawCSV = (text) => {
+            const lines = text.split('\n').filter(line => line.trim());
+            const readings = [];
+            const fileId = Math.random().toString(36).substr(2, 9); // Unikalny ID dla pliku
+            
+            console.log(`📋 parseChronotrackRawCSV: ${lines.length} linii`);
+            
+            lines.forEach((line, index) => {
+              // Format: TO~43~3~220~2~1413615526.80~10EC17~4~-57~80~P~56
+              const fields = line.split('~');
+              
+              if (index < 3) {
+                console.log(`   Linia ${index}: ${fields.length} pól, TAG="${fields[2]}", timestamp="${fields[5]}"`);
+              }
+              
+              if (fields[0] === 'TO' && fields.length >= 12) {
+                try {
+                  const timestamp = parseFloat(fields[5]);
+                  const tag = fields[2].trim();  // POPRAWKA: pole [2] to TAG!
+                  const timerCode = fields[3];
+                  const eventCode = fields[4];
+                  const reader = fields[6];
+                  const port = fields[7];
+                  const rssi = parseInt(fields[8]);
+                  const totalReads = fields[11];
+                  
+                  if (!isNaN(timestamp) && tag) {
+                    readings.push({
+                      id: `raw-${fileId}-${index}-${timestamp}`, // UNIKALNE ID!
+                      tag: tag,
+                      raw: fields[5],
+                      timestamp: timestamp,
+                      datetime: parseUnixTimestamp(fields[5]).toLocaleString('pl-PL'),
+                      reader: reader,
+                      port: port,
+                      antenna: port, // Port = antenna
+                      rssi: rssi,
+                      timerCode: timerCode,
+                      eventCode: eventCode,
+                      totalReads: totalReads,
+                      source: 'chronotrack_raw'
+                    });
+                  }
+                } catch (e) {
+                  console.error(`   ❌ Błąd parsowania linii ${index}:`, e);
+                }
+              } else if (fields[0] === 'TO') {
+                console.warn(`   ⚠️ Linia ${index}: Za mało pól (${fields.length}, potrzeba >=12)`);
+              }
+            });
+            
+            console.log(`✅ Sparsowano ${readings.length} odczytów`);
+            if (readings.length > 0) {
+              console.log(`   Przykładowy odczyt:`, readings[0]);
+            }
+            
+            return readings;
+          };
+
+          const handleChronotrackUpload = (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            // POPRAWKA: zmienne MUSZĄ być na zewnątrz aby były współdzielone
+            const allNewReadings = [];
+            let filesProcessed = 0;
+            let totalReadings = 0;
+            const totalFiles = files.length; // Zapisz długość na początku
+
+            console.log(`\n========================================`);
+            console.log(`📂 ROZPOCZYNAM WCZYTYWANIE ${totalFiles} PLIKÓW`);
+            console.log(`========================================`);
+
+            Array.from(files).forEach((file, fileIndex) => {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const text = event.target.result;
+                
+                console.log(`\n📂 PLIK #${fileIndex + 1}/${totalFiles}: ${file.name}`);
+                console.log(`   Rozmiar: ${(text.length / 1024).toFixed(2)} KB`);
+                console.log(`   Linii: ${text.split('\n').length}`);
+                
+                // Sprawdź czy to surowy format Chronotrack (TO~)
+                if (text.includes('TO~')) {
+                  console.log(`   Format: ✓ Chronotrack RAW (TO~)`);
+                  const readings = parseChronotrackRawCSV(text);
+                  
+                  console.log(`   Wynik parsowania: ${readings.length} odczytów`);
+                  
+                  if (readings.length > 0) {
+                    const beforeLength = allNewReadings.length;
+                    allNewReadings.push(...readings);
+                    const afterLength = allNewReadings.length;
+                    totalReadings += readings.length;
+                    console.log(`   ✓ Dodano do bufora: ${readings.length} odczytów`);
+                    console.log(`   Bufor teraz: ${beforeLength} → ${afterLength} odczytów`);
+                  } else {
+                    console.log(`   ⚠️ Brak odczytów w pliku!`);
+                  }
+                } else {
+                  console.log(`   Format: ✓ CSV z przecinkami`);
+                  // Stary format (CSV z przecinkami)
+                  const lines = text.split('\n').filter(line => line.trim());
+                  
+                  const newData = [];
+                  const newGunStarts = [];
+                  
+                  lines.slice(1).forEach((line, index) => {
+                    const [tag, timestamp, datetime, readerName] = line.split(',').map(s => s.trim());
+                    
+                    if (tag.toUpperCase() === 'GUNSTART') {
+                      const ts = parseFloat(timestamp);
+                      newGunStarts.push({
+                        timestamp: ts,
+                        datetime: parseUnixTimestamp(timestamp).toLocaleString('pl-PL'),
+                        reader: readerName || 'Unknown',
+                        raw: timestamp
+                      });
+                    } else if (tag && timestamp) {
+                      newData.push({
+                        id: `chrono-${Date.now()}-${Math.random()}-${index}`,
+                        tag,
+                        raw: timestamp,
+                        timestamp: parseFloat(timestamp),
+                        datetime: parseUnixTimestamp(timestamp).toLocaleString('pl-PL'),
+                        reader: readerName || 'Unknown'
+                      });
+                    }
+                  });
+
+                  if (newData.length > 0) {
+                    allNewReadings.push(...newData);
+                    totalReadings += newData.length;
+                    console.log(`   ✓ Wczytano: ${newData.length} odczytów`);
+                  }
+                  
+                  if (newGunStarts.length > 0) {
+                    setAllGunStarts(prev => [...prev, ...newGunStarts]);
+                    console.log(`   ✓ Wczytano: ${newGunStarts.length} GUNSTART`);
+                  }
+                }
+                
+                filesProcessed++;
+                console.log(`\n📊 POSTĘP: ${filesProcessed}/${totalFiles} plików`);
+                console.log(`   Bufor łącznie: ${allNewReadings.length} odczytów`);
+                
+                // Wszystkie pliki przetworzone
+                if (filesProcessed === totalFiles) {
+                  console.log(`\n========================================`);
+                  console.log(`✅ ZAKOŃCZONO WCZYTYWANIE WSZYSTKICH PLIKÓW`);
+                  console.log(`========================================`);
+                  console.log(`   Odczytów w buforze: ${allNewReadings.length}`);
+                  
+                  if (allNewReadings.length > 0) {
+                    // Sortuj przed dodaniem
+                    console.log(`   Sortuję...`);
+                    allNewReadings.sort((a, b) => a.timestamp - b.timestamp);
+                    
+                    // Merge z istniejącymi danymi
+                    setChronotrackData(prev => {
+                      console.log(`   Poprzednio w systemie: ${prev.length} odczytów`);
+                      const merged = [...prev, ...allNewReadings];
+                      console.log(`   Po dodaniu nowych: ${merged.length} odczytów`);
+                      const sorted = merged.sort((a, b) => a.timestamp - b.timestamp);
+                      console.log(`   ✓ Posortowano - KOŃCOWY STAN: ${sorted.length} odczytów`);
+                      return sorted;
+                    });
+                    
+                    const uniqueTags = new Set(allNewReadings.map(r => r.tag)).size;
+                    const timeRange = {
+                      start: parseUnixTimestamp(allNewReadings[0].raw).toLocaleString('pl-PL'),
+                      end: parseUnixTimestamp(allNewReadings[allNewReadings.length - 1].raw).toLocaleString('pl-PL')
+                    };
+                    
+                    console.log(`   Unikalne tagi: ${uniqueTags}`);
+                    console.log(`   Zakres: ${timeRange.start} - ${timeRange.end}`);
+                    console.log(`========================================\n`);
+                    
+                    // Informuj użytkownika
+                    setTimeout(() => {
+                      alert(`✅ Wczytano ${totalFiles} plików!\n\n` + 
+                            `Łącznie: ${allNewReadings.length} odczytów\n` +
+                            `Unikalne tagi: ${uniqueTags}\n\n` +
+                            `Zakres:\n${timeRange.start}\n- ${timeRange.end}`);
+                    }, 100);
+                  } else {
+                    console.log(`   ❌ Brak odczytów!`);
+                    alert('❌ Nie znaleziono prawidłowych odczytów w plikach!');
+                  }
+                }
+              };
+              
+              reader.onerror = (error) => {
+                console.error(`❌ Błąd wczytywania ${file.name}:`, error);
+                filesProcessed++;
+              };
+              
+              reader.readAsText(file);
+            });
+            
+            // Reset input
+            e.target.value = '';
+          };
+
+          const handleParticipantsUpload = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const text = event.target.result;
+              const lines = text.split('\n').filter(line => line.trim());
+              
+              if (lines.length < 2) {
+                alert('❌ Plik jest pusty lub ma tylko nagłówek!');
+                return;
+              }
+
+              // Rozpoznaj separator
+              const firstLine = lines[0];
+              const separator = firstLine.includes(';') ? ';' : ',';
+              console.log('📋 Separator:', separator === ';' ? 'średnik' : 'przecinek');
+
+              // Parsuj nagłówek
+              const header = lines[0].toLowerCase().split(separator).map(h => h.trim());
+              console.log('📋 Nagłówki:', header);
+
+              // Znajdź indeksy kolumn - obsługa różnych nazw
+              const tagIdx = header.findIndex(h => 
+                h === 'tag' || h === 'chip' || h === 'rfid'
+              );
+              const bibIdx = header.findIndex(h => 
+                h === 'bib' || h === 'numer' || h === 'number' || h === 'nr'
+              );
+              const firstNameIdx = header.findIndex(h => 
+                h === 'firstname' || h === 'first' || h === 'imie' || h === 'imię' || h === 'name'
+              );
+              const lastNameIdx = header.findIndex(h => 
+                h === 'lastname' || h === 'last' || h === 'nazwisko' || h === 'surname'
+              );
+              const genderIdx = header.findIndex(h =>
+                h === 'gender' || h === 'sex' || h === 'plec' || h === 'płeć' || h === 'm/k'
+              );
+              const cityIdx = header.findIndex(h =>
+                h === 'city' || h === 'miasto' || h === 'miejscowosc' || h === 'miejscowość'
+              );
+              const clubIdx = header.findIndex(h =>
+                h === 'club' || h === 'team' || h === 'klub' || h === 'druzyna' || h === 'drużyna'
+              );
+              const yearOfBirthIdx = header.findIndex(h =>
+                h === 'year_of_birth' || h === 'year' || h === 'rok' || h === 'rok_urodzenia' || h === 'yob'
+              );
+              const categoryIdx = header.findIndex(h =>
+                h === 'category' || h === 'cat' || h === 'kategoria' || h === 'kat'
+              );
+
+              console.log('📋 Indeksy kolumn:', { tagIdx, bibIdx, firstNameIdx, lastNameIdx, genderIdx, cityIdx, clubIdx, yearOfBirthIdx, categoryIdx });
+
+              if (tagIdx === -1) {
+                alert('❌ Brak kolumny TAG!\n\nPlik musi mieć kolumnę: tag, chip lub rfid');
+                return;
+              }
+
+              // Parsuj dane
+              const newData = [];
+              for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const parts = line.split(separator).map(p => p.trim());
+                
+                const tag = parts[tagIdx];
+                if (!tag) continue;
+
+                // Rozpoznaj płeć (M/K, male/female, etc.)
+                let gender = '';
+                if (genderIdx >= 0 && parts[genderIdx]) {
+                  const g = parts[genderIdx].toUpperCase();
+                  if (g === 'M' || g === 'MALE' || g === 'MĘŻCZYZNA' || g === 'MEZCZYZNA') {
+                    gender = 'M';
+                  } else if (g === 'K' || g === 'F' || g === 'FEMALE' || g === 'KOBIETA') {
+                    gender = 'K';
+                  }
+                }
+
+                // Rok urodzenia i kategoria wiekowa
+                const yearOfBirth = yearOfBirthIdx >= 0 ? parseInt(parts[yearOfBirthIdx]) : null;
+                let category = categoryIdx >= 0 ? parts[categoryIdx] : '';
+                
+                // Auto-kalkulacja kategorii jeśli nie podana
+                if (!category && yearOfBirth && !isNaN(yearOfBirth)) {
+                  const currentYear = new Date().getFullYear();
+                  const age = currentYear - yearOfBirth;
+                  
+                  // Znajdź kategorię na podstawie wieku i płci
+                  const matchingCategory = ageCategories.find(cat => 
+                    cat.gender === gender && 
+                    age >= cat.minAge && 
+                    age <= cat.maxAge
+                  );
+                  
+                  if (matchingCategory) {
+                    category = matchingCategory.name;
+                  } else {
+                    // Fallback na standardowe kategorie jeśli nie ma dopasowania
+                    if (age < 18) category = 'U18';
+                    else if (age < 20) category = 'U20';
+                    else if (age < 23) category = 'U23';
+                    else if (age < 30) category = '20-29';
+                    else if (age < 35) category = '30-34';
+                    else if (age < 40) category = '35-39';
+                    else if (age < 45) category = '40-44';
+                    else if (age < 50) category = '45-49';
+                    else if (age < 55) category = '50-54';
+                    else if (age < 60) category = '55-59';
+                    else if (age < 65) category = '60-64';
+                    else if (age < 70) category = '65-69';
+                    else category = '70+';
+                  }
+                }
+
+                const participant = {
+                  tag: tag,
+                  bib: bibIdx >= 0 ? (parts[bibIdx] || '?') : '?',
+                  firstName: firstNameIdx >= 0 ? (parts[firstNameIdx] || '') : '',
+                  lastName: lastNameIdx >= 0 ? (parts[lastNameIdx] || '') : '',
+                  gender: gender,
+                  city: cityIdx >= 0 ? (parts[cityIdx] || '') : '',
+                  club: clubIdx >= 0 ? (parts[clubIdx] || '') : '',
+                  yearOfBirth: yearOfBirth,
+                  category: category
+                };
+
+                newData.push(participant);
+                console.log(`📋 Wczytano: TAG ${participant.tag} → ${participant.firstName} ${participant.lastName} (${participant.gender || '?'}) ${participant.city} ${participant.club}`);
+              }
+
+              if (newData.length === 0) {
+                alert('❌ Nie znaleziono żadnych danych w pliku!');
+                return;
+              }
+
+              console.log('📋 Wszystkie dane:', newData);
+
+              // MERGE - aktualizuj istniejące TAGi lub dodaj nowe
+              setParticipantsData(prev => {
+                console.log('📋 Poprzednie dane:', prev);
+                
+                const merged = [...prev];
+                let updatedCount = 0;
+                let addedCount = 0;
+                
+                newData.forEach(newParticipant => {
+                  const existingIndex = merged.findIndex(p => p.tag === newParticipant.tag);
+                  
+                  if (existingIndex >= 0) {
+                    // TAG już istnieje - AKTUALIZUJ dane
+                    merged[existingIndex] = newParticipant;
+                    updatedCount++;
+                    console.log(`✏️ Zaktualizowano TAG ${newParticipant.tag}: ${newParticipant.firstName} ${newParticipant.lastName}`);
+                  } else {
+                    // Nowy TAG - DODAJ
+                    merged.push(newParticipant);
+                    addedCount++;
+                    console.log(`➕ Dodano TAG ${newParticipant.tag}: ${newParticipant.firstName} ${newParticipant.lastName}`);
+                  }
+                });
+                
+                console.log('📋 Nowe dane (po merge):', merged);
+                
+                alert(`✅ Wczytano ${newData.length} uczestników:\n` +
+                      `   • Zaktualizowano: ${updatedCount}\n` +
+                      `   • Dodano nowych: ${addedCount}\n` +
+                      `   • Razem w systemie: ${merged.length}\n\n` +
+                      `💾 Zapisuję automatycznie...\n\n` +
+                      `Odśwież stronę (F5) żeby zobaczyć zmiany w wynikach!`);
+                
+                // Wymuszam zapis
+                setTimeout(() => saveToLocalStorage(), 500);
+                
+                return merged;
+              });
+            };
+            reader.readAsText(file);
+          };
+
+          // ========== MANUAL CONTROLS ==========
+          const setManualGunStart = () => {
+            const now = Date.now() / 1000;
+            const gunStartData = {
+              timestamp: now,
+              datetime: new Date(now * 1000).toLocaleString('pl-PL'),
+              reader: 'MANUAL',
+              raw: now.toFixed(2)
+            };
+            setGunStart(now);
+            setAllGunStarts(prev => [...prev, gunStartData]);
+            alert(`🔫 GUNSTART: ${new Date(now * 1000).toLocaleString('pl-PL')}`);
+          };
+
+          const setCustomGunStart = () => {
+            const input = prompt(
+              'Wpisz Gun Start:\n\n' +
+              '1. Unix timestamp (np: 1761390812.59)\n' +
+              '2. Data i godzina (np: 2025-10-25 10:58:12)\n' +
+              '3. Tylko godzina dzisiaj (np: 10:58:12)\n\n' +
+              'Wpisz wartość:'
+            );
+            
+            if (!input || input.trim() === '') return;
+            
+            let timestamp;
+            const trimmed = input.trim();
+            
+            // 1. Unix timestamp (liczba z kropką)
+            if (/^\d+\.?\d*$/.test(trimmed)) {
+              timestamp = parseFloat(trimmed);
+            }
+            // 2. Pełna data i czas (YYYY-MM-DD HH:MM:SS)
+            else if (/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+              const date = new Date(trimmed);
+              if (isNaN(date.getTime())) {
+                alert('❌ Nieprawidłowy format daty!');
+                return;
+              }
+              timestamp = date.getTime() / 1000;
+            }
+            // 3. Tylko czas (HH:MM:SS lub HH:MM)
+            else if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+              const now = new Date();
+              const [hours, minutes, seconds = '0'] = trimmed.split(':');
+              now.setHours(parseInt(hours));
+              now.setMinutes(parseInt(minutes));
+              now.setSeconds(parseInt(seconds));
+              now.setMilliseconds(0);
+              timestamp = now.getTime() / 1000;
+            }
+            else {
+              alert('❌ Nieprawidłowy format!\n\nUżyj jednego z formatów:\n• 1761390812.59\n• 2025-10-25 10:58:12\n• 10:58:12');
+              return;
+            }
+            
+            if (isNaN(timestamp)) {
+              alert('❌ Błąd parsowania czasu!');
+              return;
+            }
+            
+            const gunStartData = {
+              timestamp: timestamp,
+              datetime: new Date(timestamp * 1000).toLocaleString('pl-PL'),
+              reader: 'CUSTOM',
+              raw: timestamp.toFixed(2)
+            };
+            
+            setGunStart(timestamp);
+            setAllGunStarts(prev => [...prev, gunStartData]);
+            
+            alert(`✅ Gun Start ustawiony:\n${new Date(timestamp * 1000).toLocaleString('pl-PL')}\n\nUnix: ${timestamp.toFixed(2)}`);
+          };
+
+          const deleteReading = (id) => {
+            setDeletedReadings(prev => new Set([...prev, id]));
+            
+            // Wyślij update
+            setTimeout(() => {
+              if (resultsServerConnected) {
+                console.log('📤 Usunięto okrążenie - broadcast update');
+                sendResultsUpdate();
+              }
+            }, 100);
+          };
+
+          const restoreReading = (id) => {
+            setDeletedReadings(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(id);
+              return newSet;
+            });
+            
+            // Wyślij update
+            setTimeout(() => {
+              if (resultsServerConnected) {
+                console.log('📤 Przywrócono okrążenie - broadcast update');
+                sendResultsUpdate();
+              }
+            }, 100);
+          };
+
+          const addManualLap = (tag) => {
+            const now = Date.now() / 1000;
+            const newReading = {
+              id: `manual-${Date.now()}`,
+              tag,
+              raw: now.toString(),
+              timestamp: now,
+              datetime: new Date(now * 1000).toLocaleString('pl-PL'),
+              reader: 'MANUAL',
+              isManual: true  // Flaga: pomija filtr minLapTime
+            };
+            setChronotrackData(prev => [...prev, newReading].sort((a, b) => a.timestamp - b.timestamp));
+            alert(`➕ Dodano okrążenie dla TAG: ${tag}`);
+          };
+
+          const removeLastLap = (tag) => {
+            const participantReadings = chronotrackData
+              .filter(r => r.tag === tag && !deletedReadings.has(r.id) && (!gunStart || r.timestamp >= gunStart))
+              .sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (participantReadings.length > 0) {
+              deleteReading(participantReadings[0].id);
+              alert(`➖ Usunięto ostatnie okrążenie dla TAG: ${tag}`);
+            }
+          };
+
+          // ========== RESULTS CALCULATION ==========
+          const results = useMemo(() => {
+            if (!gunStart) return [];
+
+            const activeReadings = chronotrackData.filter(r => 
+              !deletedReadings.has(r.id) && r.timestamp >= gunStart
+            );
+            
+            console.log(`🔍 RESULTS: ${activeReadings.length} odczytów, ${participantsData.length} uczestników`);
+
+            const byTag = {};
+            activeReadings.forEach(reading => {
+              if (!byTag[reading.tag]) {
+                byTag[reading.tag] = [];
+              }
+              byTag[reading.tag].push(reading);
+            });
+
+            return Object.entries(byTag).map(([tag, readings]) => {
+              const sortedReadings = readings.sort((a, b) => a.timestamp - b.timestamp);
+              const filteredLaps = [];
+              let lastValidTime = gunStart;
+
+              sortedReadings.forEach(reading => {
+                // Ręczne okrążenia (dodane przez admina) pomijają filtr minLapTime
+                const isManualReading = reading.isManual === true;
+                const meetsTimeLimit = reading.timestamp - lastValidTime >= minLapTime;
+                
+                if (isManualReading || meetsTimeLimit) {
+                  filteredLaps.push(reading);
+                  lastValidTime = reading.timestamp;
+                }
+              });
+
+              const participant = participantsData.find(p => p.tag === tag);
+              
+              if (!participant && filteredLaps.length > 0) {
+                console.warn(`⚠️ Brak uczestnika dla TAG="${tag}" (${filteredLaps.length} okrążeń)`);
+              }
+              
+              const participantInfo = participant || {
+                bib: '?',
+                firstName: 'Nieznany',
+                lastName: 'Zawodnik',
+                gender: '',
+                city: '',
+                club: ''
+              };
+
+              const totalTime = filteredLaps.length > 0 
+                ? filteredLaps[filteredLaps.length - 1].timestamp - gunStart 
+                : 0;
+
+              return {
+                tag,
+                bib: participantInfo.bib,
+                firstName: participantInfo.firstName,
+                lastName: participantInfo.lastName,
+                gender: participantInfo.gender || '',
+                city: participantInfo.city || '',
+                club: participantInfo.club || '',
+                laps: filteredLaps.length,
+                distance: (filteredLaps.length * lapDistance).toFixed(2),
+                lapDetails: filteredLaps,
+                totalTime,
+                lastLapTime: filteredLaps.length > 0 ? filteredLaps[filteredLaps.length - 1].timestamp : null
+              };
+            }).sort((a, b) => {
+              if (b.laps !== a.laps) return b.laps - a.laps;
+              return a.totalTime - b.totalTime;
+            });
+          }, [chronotrackData, participantsData, gunStart, deletedReadings, minLapTime, lapDistance]);
+
+          // Track last finisher - kto ostatnio przeleciał linię
+          useEffect(() => {
+            if (results.length === 0) return;
+            
+            // Znajdź zawodnika z najnowszym ostatnim okrążeniem
+            const sorted = [...results]
+              .filter(r => r.lastLapTime)
+              .sort((a, b) => b.lastLapTime - a.lastLapTime);
+            
+            if (sorted.length > 0) {
+              setLastFinisher(sorted[0]);
+            }
+          }, [results]);
+
+          // Broadcast view timers
+          useEffect(() => {
+            if (!publicViewMode) return;
+            const interval = setInterval(() => setCurrentTime(Date.now()), 1000);
+            return () => clearInterval(interval);
+          }, [publicViewMode]);
+
+          useEffect(() => {
+            if (!publicViewMode) return;
+            const interval = setInterval(() => setScrollPosition(prev => prev + 1), 50);
+            return () => clearInterval(interval);
+          }, [publicViewMode]);
+
+          // Animacja TOP 5 w WYNIKI - zmienia medal co 7 sekund
+          useEffect(() => {
+            if (!publicViewMode || publicViewType !== 'wyniki') return;
+            const interval = setInterval(() => {
+              setAnimatedIndex(prev => (prev + 1) % 5); // 0,1,2,3,4,0,1...
+            }, 7000); // 7 sekund
+            return () => clearInterval(interval);
+          }, [publicViewMode, publicViewType]);
+
+          // Animacja kategorii w TOP5 - zmienia kategorię co 10 sekund
+          useEffect(() => {
+            if (!publicViewMode || publicViewType !== 'top5') return;
+            if (!menAnimationSteps || !womenAnimationSteps) return; // Zabezpieczenie
+            
+            const maxSteps = Math.max(menAnimationSteps.length, womenAnimationSteps.length);
+            if (maxSteps === 0) return;
+            
+            const interval = setInterval(() => {
+              setCategoryAnimationIndex(prev => (prev + 1) % maxSteps);
+            }, 10000); // 10 sekund
+            return () => clearInterval(interval);
+          }, [publicViewMode, publicViewType, menAnimationSteps, womenAnimationSteps]);
+
+          // Timer do aktualizacji czasu od ostatniego odczytu (co sekundę)
+          const [timeUpdateTrigger, setTimeUpdateTrigger] = useState(0);
+          useEffect(() => {
+            const interval = setInterval(() => {
+              setTimeUpdateTrigger(prev => prev + 1); // Wymusza re-render co sekundę
+            }, 1000);
+            return () => clearInterval(interval);
+          }, []);
+
+          const formatTime = (seconds) => {
+            if (!seconds || seconds < 0) return '--:--';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+          };
+
+          // NOWA: Funkcja do obliczania czasu od ostatniego odczytu
+          const getTimeSinceLastReading = (lastLapTime) => {
+            if (!lastLapTime) return null;
+            const now = Date.now() / 1000;
+            const timeSince = now - lastLapTime;
+            
+            if (timeSince < 60) {
+              return `${Math.floor(timeSince)}s`;
+            } else if (timeSince < 3600) {
+              const minutes = Math.floor(timeSince / 60);
+              const seconds = Math.floor(timeSince % 60);
+              return `${minutes}m ${seconds}s`;
+            } else {
+              const hours = Math.floor(timeSince / 3600);
+              const minutes = Math.floor((timeSince % 3600) / 60);
+              return `${hours}h ${minutes}m`;
+            }
+          };
+
+          const exportResults = () => {
+            if (results.length === 0) {
+              alert('Brak danych do eksportu');
+              return;
+            }
+
+            let csv = 'Pozycja,Numer,TAG,Imię,Nazwisko,Płeć,M. w kat.,Kat. wiek.,Miasto,Klub,Okrążenia,Dystans (km),Czas całkowity\n';
+            resultsWithRanks.forEach((r, idx) => {
+              csv += `${idx + 1},${r.bib},"${r.tag}","${r.firstName}","${r.lastName}","${r.gender || ''}","${r.genderRank || ''}","${r.category || ''}","${r.city || ''}","${r.club || ''}",${r.laps},${r.distance},${formatTime(r.totalTime)}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `yogo_lap_results_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+          };
+
+          const deleteLapFromResults = (tag, lapIndex) => {
+            const result = results.find(r => r.tag === tag);
+            if (!result || lapIndex >= result.lapDetails.length) return;
+            
+            const lapToDelete = result.lapDetails[lapIndex];
+            deleteReading(lapToDelete.id);
+          };
+
+          // ========== PUBLIC VIEW MODE ==========
+          // Przygotuj dane dla public view (ale NIE rób early return!)
+          const elapsedTime = gunStart ? Math.floor((currentTime / 1000) - gunStart) : 0;
+          
+          const formatElapsedTime = (seconds) => {
+            if (seconds < 0) return '00:00:00';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+          };
+
+          const menResults = (results || []).filter(r => r.gender === 'M').slice(0, 5);
+          const womenResults = (results || []).filter(r => r.gender === 'K').slice(0, 5);
+
+          // Kategorie wiekowe - TOP5 dla każdej kategorii M/K
+          const menCategories = useMemo(() => {
+            if (!results) return [];
+            const byCategory = {};
+            results.filter(r => r.gender === 'M' && r.category).forEach(r => {
+              if (!byCategory[r.category]) byCategory[r.category] = [];
+              byCategory[r.category].push(r);
+            });
+            return Object.entries(byCategory)
+              .map(([cat, runners]) => ({
+                category: cat,
+                top5: runners.slice(0, 5)
+              }))
+              .filter(c => c.top5.length > 0)
+              .sort((a, b) => a.category.localeCompare(b.category));
+          }, [results]);
+
+          const womenCategories = useMemo(() => {
+            if (!results) return [];
+            const byCategory = {};
+            results.filter(r => r.gender === 'K' && r.category).forEach(r => {
+              if (!byCategory[r.category]) byCategory[r.category] = [];
+              byCategory[r.category].push(r);
+            });
+            return Object.entries(byCategory)
+              .map(([cat, runners]) => ({
+                category: cat,
+                top5: runners.slice(0, 5)
+              }))
+              .filter(c => c.top5.length > 0)
+              .sort((a, b) => a.category.localeCompare(b.category));
+          }, [results]);
+
+          // Dla animacji - lista: [TOP5 ogólne, kat1, kat2, ..., TOP5 ogólne]
+          const menAnimationSteps = useMemo(() => {
+            if (!menResults || menResults.length === 0) return [];
+            return [
+              { type: 'overall', data: menResults, label: 'TOP 5 MĘŻCZYZN' },
+              ...(menCategories || []).map(c => ({ type: 'category', data: c.top5, label: `KATEGORIA ${c.category}` }))
+            ];
+          }, [menResults, menCategories]);
+
+          const womenAnimationSteps = useMemo(() => {
+            if (!womenResults || womenResults.length === 0) return [];
+            return [
+              { type: 'overall', data: womenResults, label: 'TOP 5 KOBIET' },
+              ...(womenCategories || []).map(c => ({ type: 'category', data: c.top5, label: `KATEGORIA ${c.category}`, isWomen: true }))
+            ];
+          }, [womenResults, womenCategories]);
+
+          // Kalkuluj miejsca w kategoriach
+          const resultsWithRanks = useMemo(() => {
+            if (!results || results.length === 0) return [];
+            
+            // Miejsce w kategorii płci
+            const byGender = { M: [], K: [] };
+            results.forEach(r => {
+              if (r.gender === 'M' || r.gender === 'K') {
+                byGender[r.gender].push(r);
+              }
+            });
+            
+            // Miejsce w kategorii wiekowej
+            const byCategory = {};
+            
+            // Jeśli wykluczamy zwycięzców OPEN, najpierw znajdź ich
+            let excludedFromCategories = new Set();
+            if (excludeOpenWinners && openWinnersToExclude > 0) {
+              // TOP N mężczyzn
+              const topMen = byGender.M.slice(0, openWinnersToExclude);
+              topMen.forEach(r => excludedFromCategories.add(r.tag));
+              
+              // TOP N kobiet
+              const topWomen = byGender.K.slice(0, openWinnersToExclude);
+              topWomen.forEach(r => excludedFromCategories.add(r.tag));
+              
+              console.log(`🏆 Wykluczam z kategorii wiekowych TOP ${openWinnersToExclude}:`, 
+                         [...excludedFromCategories]);
+            }
+            
+            // Teraz buduj kategorie wiekowe (bez wykluczonych)
+            results.forEach(r => {
+              if (r.category && !excludedFromCategories.has(r.tag)) {
+                if (!byCategory[r.category]) byCategory[r.category] = [];
+                byCategory[r.category].push(r);
+              }
+            });
+            
+            return results.map(r => {
+              let genderRank = null;
+              let categoryRank = null;
+              
+              if (r.gender === 'M' || r.gender === 'K') {
+                genderRank = byGender[r.gender].findIndex(x => x.tag === r.tag) + 1;
+              }
+              
+              if (r.category && byCategory[r.category]) {
+                categoryRank = byCategory[r.category].findIndex(x => x.tag === r.tag) + 1;
+                if (categoryRank === 0) categoryRank = null; // Nie znaleziono (prawdopodobnie wykluczony)
+              }
+              
+              // Dodaj informację o wykluczeniu
+              const isExcludedFromCategory = excludedFromCategories.has(r.tag);
+              
+              return { ...r, genderRank, categoryRank, isExcludedFromCategory };
+            });
+          }, [results, excludeOpenWinners, openWinnersToExclude]);
+
+          // Debug - ile mamy wyników z płcią
+          if (results && results.length > 0) {
+            console.log('🔍 DEBUG Results:', results.length);
+            console.log('🔍 Men:', menResults.length, menResults.map(r => `${r.bib}-${r.gender}`));
+            console.log('🔍 Women:', womenResults.length, womenResults.map(r => `${r.bib}-${r.gender}`));
+            console.log('🔍 Sample result:', results[0]);
+          }
+
+          // WIDOK METY: 10 najnowszych zawodników (sortowane po ostatnim odczycie)
+          const recentFinishers = (results || [])
+            .filter(r => r.lastLapTime)
+            .sort((a, b) => b.lastLapTime - a.lastLapTime)
+            .slice(0, 10);
+
+          // ========== RENDER ==========
+          return publicViewMode ? (
+              <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white overflow-hidden">
+                {/* HEADER - compact, one line */}
+                <div className="bg-black/40 backdrop-blur-md border-b border-white/20 px-6 py-3">
+                  <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                      <div className="text-2xl font-bold">YO&GO Lap - Wyniki na żywo</div>
+                      <div className="h-8 w-px bg-white/30"></div>
+                      <div className="text-xl font-semibold">{eventName}</div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <div className="text-xs text-gray-400">Czas od startu</div>
+                        <div className="text-2xl font-mono font-bold text-green-400">
+                          {gunStart ? formatElapsedTime(elapsedTime) : '--:--:--'}
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 bg-red-600 rounded-full text-sm font-bold animate-pulse">
+                        ● LIVE
+                      </div>
+                      
+                      {/* Przełącznik 3 widoków: top5 → wyniki → meta → top5 */}
+                      <button
+                        onClick={() => {
+                          if (publicViewType === 'top5') setPublicViewType('wyniki');
+                          else if (publicViewType === 'wyniki') setPublicViewType('meta');
+                          else setPublicViewType('top5');
+                        }}
+                        className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-sm font-semibold transition-all"
+                        title="Przełącz widok"
+                      >
+                        {publicViewType === 'top5' ? '🔄 Wyniki' : 
+                         publicViewType === 'wyniki' ? '🔄 META' : 
+                         '🔄 TOP5'}
+                      </button>
+                      
+                      {/* Admin z hasłem */}
+                      <button
+                        onClick={() => {
+                          const password = prompt('Podaj hasło administratora:');
+                          if (password === '72') {
+                            setPublicViewMode(false);
+                          } else if (password !== null) {
+                            alert('Nieprawidłowe hasło!');
+                          }
+                        }}
+                        className="text-xl hover:scale-110 transition-transform"
+                        title="Panel administracyjny"
+                      >
+                        ⚙️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* WIDOK META - 10 ostatnich zawodników */}
+                {publicViewType === 'meta' && (
+                  <div className="max-w-7xl mx-auto p-6">
+                    {recentFinishers.length === 0 ? (
+                      <div className="text-center text-4xl text-gray-400 py-32">
+                        Oczekiwanie na zawodników...
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {recentFinishers.map((r, idx) => (
+                          <div
+                            key={r.tag}
+                            className="p-4 bg-white/10 rounded-lg flex items-center justify-between border border-white/20"
+                          >
+                            <div className="flex items-center gap-6">
+                              {/* Pozycja */}
+                              <div className="text-2xl font-bold w-16 text-center">
+                                {idx + 1}
+                              </div>
+                              
+                              {/* Numer startowy */}
+                              <div className="text-3xl font-bold w-20">
+                                {r.bib}
+                              </div>
+                              
+                              {/* Imię i nazwisko */}
+                              <div className="text-2xl font-semibold">
+                                {r.firstName} {r.lastName}
+                              </div>
+                              
+                              {/* Miasto i klub */}
+                              <div className="text-lg text-gray-400">
+                                {r.city && <span>{r.city}</span>}
+                                {r.club && <span className="ml-2">• {r.club}</span>}
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-8">
+                              {/* Okrążenia - STAŁA SZEROKOŚĆ */}
+                              <div className="text-right w-32">
+                                <div className="text-3xl font-mono font-bold">{r.laps}</div>
+                                <div className="text-sm text-gray-400">okrążeń</div>
+                              </div>
+                              
+                              {/* Dystans - STAŁA SZEROKOŚĆ */}
+                              <div className="text-right w-40">
+                                <div className="text-2xl font-bold">{r.distance} km</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* WIDOK WYNIKI - wąski animowany kafelek TOP 5 + scrolling lista */}
+                {publicViewType === 'wyniki' && (
+                  <div className="max-w-7xl mx-auto p-6 space-y-4">
+                    {/* Wąski animowany kafelek TOP 5 M/K (zmiana co 7s) */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {/* MĘŻCZYŹNI - wąski kafelek */}
+                      <div className="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-blue-400">
+                        {menResults.length === 0 ? (
+                          <p className="text-gray-400 text-center py-2 text-sm">Brak wyników</p>
+                        ) : menResults[animatedIndex] ? (
+                          <div className="flex items-center gap-4">
+                            {/* Medal */}
+                            <div className="text-4xl">
+                              {animatedIndex === 0 ? '🥇' : 
+                               animatedIndex === 1 ? '🥈' : 
+                               animatedIndex === 2 ? '🥉' : 
+                               <span className="text-2xl font-black">{animatedIndex + 1}.</span>}
+                            </div>
+                            {/* Numer */}
+                            <div className="text-5xl font-black">
+                              {menResults[animatedIndex].bib}
+                            </div>
+                            {/* Imię */}
+                            <div className="flex-1">
+                              <div className="text-2xl font-bold text-blue-300">
+                                {menResults[animatedIndex].firstName} {menResults[animatedIndex].lastName}
+                              </div>
+                            </div>
+                            {/* Stats */}
+                            <div className="text-right">
+                              <div className="text-3xl font-black">{menResults[animatedIndex].laps}</div>
+                              <div className="text-xs text-gray-400">okrążeń</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold">{menResults[animatedIndex].distance} km</div>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* KOBIETY - wąski kafelek */}
+                      <div className="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-pink-400">
+                        {womenResults.length === 0 ? (
+                          <p className="text-gray-400 text-center py-2 text-sm">Brak wyników</p>
+                        ) : womenResults[animatedIndex] ? (
+                          <div className="flex items-center gap-4">
+                            {/* Medal */}
+                            <div className="text-4xl">
+                              {animatedIndex === 0 ? '🥇' : 
+                               animatedIndex === 1 ? '🥈' : 
+                               animatedIndex === 2 ? '🥉' : 
+                               <span className="text-2xl font-black">{animatedIndex + 1}.</span>}
+                            </div>
+                            {/* Numer */}
+                            <div className="text-5xl font-black">
+                              {womenResults[animatedIndex].bib}
+                            </div>
+                            {/* Imię */}
+                            <div className="flex-1">
+                              <div className="text-2xl font-bold text-pink-300">
+                                {womenResults[animatedIndex].firstName} {womenResults[animatedIndex].lastName}
+                              </div>
+                            </div>
+                            {/* Stats */}
+                            <div className="text-right">
+                              <div className="text-3xl font-black">{womenResults[animatedIndex].laps}</div>
+                              <div className="text-xs text-gray-400">okrążeń</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold">{womenResults[animatedIndex].distance} km</div>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* SCROLLING ALL RESULTS - jeżdżąca lista */}
+                    <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
+                      <h2 className="text-2xl font-bold mb-4">Wyniki</h2>
+                      <div className="relative overflow-hidden h-[70vh]">
+                        <div
+                          className="absolute w-full transition-transform duration-100"
+                          style={{
+                            transform: `translateY(-${(scrollPosition % (resultsWithRanks.length * 80))}px)`
+                          }}
+                        >
+                          {/* Duplikuj listę dla ciągłego scrollowania */}
+                          {[...resultsWithRanks, ...resultsWithRanks].map((r, idx) => (
+                            <div
+                              key={`scroll-${idx}`}
+                              className="p-3 mb-2 bg-white/5 rounded flex items-center justify-between border-b border-white/10"
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="text-xl font-bold w-16 text-center">{(idx % resultsWithRanks.length) + 1}</div>
+                                <div className="text-lg font-semibold">
+                                  {r.bib} - {r.firstName} {r.lastName}
+                                </div>
+                                <div className="text-sm text-gray-400">
+                                  {r.city && <span>{r.city}</span>}
+                                  {r.club && <span className="ml-2">• {r.club}</span>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                {/* Miejsce w kategorii płci - STAŁA SZEROKOŚĆ */}
+                                <div className="text-right w-20">
+                                  {r.genderRank && (
+                                    <div className={`text-sm font-semibold px-2 py-1 rounded ${
+                                      r.gender === 'K' ? 'bg-pink-500/30 text-pink-300' : 'bg-blue-500/30 text-blue-300'
+                                    }`}>
+                                      {r.gender}-{r.genderRank}
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Miejsce w kategorii wiekowej - STAŁA SZEROKOŚĆ */}
+                                <div className="text-right w-24">
+                                  {r.category && r.categoryRank && (
+                                    <div className={`text-sm font-semibold px-2 py-1 rounded ${
+                                      r.gender === 'K' ? 'text-pink-300' : ''
+                                    }`}>
+                                      {r.category} #{r.categoryRank}
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Okrążenia - STAŁA SZEROKOŚĆ */}
+                                <div className="text-right w-24">
+                                  <div className="text-2xl font-mono font-bold">{r.laps}</div>
+                                  <div className="text-xs text-gray-400">okrążeń</div>
+                                </div>
+                                {/* Dystans - STAŁA SZEROKOŚĆ */}
+                                <div className="text-right w-32">
+                                  <div className="text-xl font-bold">{r.distance} km</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* WIDOK TOP5 - animowany: TOP5 ogólne → kategorie wiekowe (10s każda) */}
+                {publicViewType === 'top5' && (
+                  <div className="max-w-7xl mx-auto p-6 space-y-6">
+                  {/* TOP 5 - MĘŻCZYŹNI i KOBIETY obok siebie */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* MĘŻCZYŹNI */}
+                    <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
+                      {menAnimationSteps.length > 0 && menAnimationSteps[categoryAnimationIndex % menAnimationSteps.length] ? (
+                        <>
+                          <h2 className="text-2xl font-bold mb-4 text-blue-300">
+                            {menAnimationSteps[categoryAnimationIndex % menAnimationSteps.length].label}
+                          </h2>
+                          {menAnimationSteps[categoryAnimationIndex % menAnimationSteps.length].data.length === 0 ? (
+                            <p className="text-gray-400 text-center py-4">Brak wyników</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {menAnimationSteps[categoryAnimationIndex % menAnimationSteps.length].data.map((r, idx) => (
+                                <div
+                                  key={r.tag}
+                                  className={`p-4 rounded-lg ${
+                                    idx === 0 ? 'bg-yellow-500/30 border-2 border-yellow-400' :
+                                    idx === 1 ? 'bg-gray-400/20 border border-gray-400' :
+                                    idx === 2 ? 'bg-orange-600/20 border border-orange-600' :
+                                    'bg-white/5 border border-white/10'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-3xl font-bold w-12">
+                                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+                                      </div>
+                                      <div>
+                                        <div className="font-bold text-lg">
+                                          {r.bib} - {r.firstName} {r.lastName}
+                                        </div>
+                                        <div className="text-sm text-gray-300">
+                                          {r.city && <span>{r.city}</span>}
+                                          {r.club && <span className="ml-2">• {r.club}</span>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right flex gap-4">
+                                      <div className="w-20">
+                                        <div className="text-3xl font-mono font-bold">{r.laps}</div>
+                                        <div className="text-xs text-gray-400">okr.</div>
+                                      </div>
+                                      <div className="w-28">
+                                        <div className="text-xl font-bold">{r.distance}</div>
+                                        <div className="text-xs text-gray-400">km</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-400 text-center py-4">Brak danych</p>
+                      )}
+                    </div>
+
+                    {/* KOBIETY */}
+                    <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
+                      {womenAnimationSteps.length > 0 && womenAnimationSteps[categoryAnimationIndex % womenAnimationSteps.length] ? (
+                        <>
+                          <h2 className="text-2xl font-bold mb-4 text-pink-300">
+                            {womenAnimationSteps[categoryAnimationIndex % womenAnimationSteps.length].label}
+                          </h2>
+                          {womenAnimationSteps[categoryAnimationIndex % womenAnimationSteps.length].data.length === 0 ? (
+                            <p className="text-gray-400 text-center py-4">Brak wyników</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {womenAnimationSteps[categoryAnimationIndex % womenAnimationSteps.length].data.map((r, idx) => (
+                            <div
+                              key={r.tag}
+                              className={`p-4 rounded-lg ${
+                                idx === 0 ? 'bg-yellow-500/30 border-2 border-yellow-400' :
+                                idx === 1 ? 'bg-gray-400/20 border border-gray-400' :
+                                idx === 2 ? 'bg-orange-600/20 border border-orange-600' :
+                                'bg-white/5 border border-white/10'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="text-3xl font-bold w-12">
+                                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-lg">
+                                      {r.bib} - {r.firstName} {r.lastName}
+                                    </div>
+                                    <div className="text-sm text-gray-300">
+                                      {r.city && <span>{r.city}</span>}
+                                      {r.club && <span className="ml-2">• {r.club}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right flex gap-4">
+                                  <div className="w-20">
+                                    <div className="text-3xl font-mono font-bold">{r.laps}</div>
+                                    <div className="text-xs text-gray-400">okr.</div>
+                                  </div>
+                                  <div className="w-28">
+                                    <div className="text-xl font-bold">{r.distance}</div>
+                                    <div className="text-xs text-gray-400">km</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      </>
+                    ) : (
+                      <p className="text-gray-400 text-center py-4">Brak danych</p>
+                    )}
+                    </div>
+
+                    {/* KOBIETY */}
+                    <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
+                      {womenAnimationSteps.length > 0 && womenAnimationSteps[categoryAnimationIndex % womenAnimationSteps.length] ? (
+                        <>
+                          <h2 className="text-2xl font-bold mb-4 text-pink-300">
+                            {womenAnimationSteps[categoryAnimationIndex % womenAnimationSteps.length].label}
+                          </h2>
+                          {womenAnimationSteps[categoryAnimationIndex % womenAnimationSteps.length].data.length === 0 ? (
+                            <p className="text-gray-400 text-center py-4">Brak wyników</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {womenAnimationSteps[categoryAnimationIndex % womenAnimationSteps.length].data.map((r, idx) => (
+                                <div
+                                  key={r.tag}
+                                  className={`p-4 rounded-lg ${
+                                    idx === 0 ? 'bg-yellow-500/30 border-2 border-yellow-400' :
+                                    idx === 1 ? 'bg-gray-400/20 border border-gray-400' :
+                                    idx === 2 ? 'bg-orange-600/20 border border-orange-600' :
+                                    'bg-white/5 border border-white/10'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-3xl font-bold w-12">
+                                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+                                      </div>
+                                      <div>
+                                        <div className="font-bold text-lg">
+                                          {r.bib} - {r.firstName} {r.lastName}
+                                        </div>
+                                        <div className="text-sm text-gray-300">
+                                          {r.city && <span>{r.city}</span>}
+                                          {r.club && <span className="ml-2">• {r.club}</span>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right flex gap-4">
+                                      <div className="w-20">
+                                        <div className="text-3xl font-mono font-bold">{r.laps}</div>
+                                        <div className="text-xs text-gray-400">okr.</div>
+                                      </div>
+                                      <div className="w-28">
+                                        <div className="text-xl font-bold">{r.distance}</div>
+                                        <div className="text-xs text-gray-400">km</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-400 text-center py-4">Brak danych</p>
+                      )}
+                    </div>
+                  </div>
+                  {/* Koniec grid TOP 5 */}
+                  {/* Koniec space-y-6 container */}
+                  </div>
+                )}
+                {/* Koniec widoku TOP5 */}
+              </div>
+            ) : (
+            // ========== ADMIN PANEL ==========
+            <div className="min-h-screen bg-gray-100">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 shadow-lg">
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Icons.Trophy />
+                      <h1 className="text-3xl font-bold">YO&GO Lap</h1>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {lastSaveTime && (
+                        <div className="text-sm opacity-90">
+                          💾 {lastSaveTime.toLocaleTimeString('pl-PL')}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setPublicViewMode(true)}
+                        className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded"
+                      >
+                        <Icons.Eye />
+                        Widok publiczny
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-2 opacity-90">System Liczenia Okrążeń</p>
+                </div>
+              </div>
+
+              <div className="max-w-7xl mx-auto p-6">
+                <div className="bg-white rounded-lg shadow-lg">
+                  {/* Connection Status Bar */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        {wsConnected ? <Icons.Wifi /> : <Icons.WifiOff />}
+                        <span className={wsConnected ? 'text-green-600' : 'text-gray-400'}>
+                          Bridge: {wsConnected ? 'Połączono' : 'Rozłączono'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {resultsServerConnected ? <Icons.Wifi /> : <Icons.WifiOff />}
+                        <span className={resultsServerConnected ? 'text-green-600' : 'text-gray-400'}>
+                          Broadcast: {resultsServerConnected ? 'Aktywny' : 'Nieaktywny'}
+                        </span>
+                      </div>
+                    </div>
+                    {lastReading && (
+                      <div className="text-sm text-gray-600">
+                        Ostatni odczyt: {lastReading.tag} @ {lastReading.time}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="flex border-b">
+                    <button
+                      onClick={() => setActiveTab('upload')}
+                      className={`px-6 py-3 font-semibold ${activeTab === 'upload' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+                    >
+                      📤 Import
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('live')}
+                      className={`px-6 py-3 font-semibold ${activeTab === 'live' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+                    >
+                      📡 Live
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('results')}
+                      className={`px-6 py-3 font-semibold ${activeTab === 'results' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+                    >
+                      🏆 Wyniki ({results.length})
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('laps')}
+                      className={`px-6 py-3 font-semibold ${activeTab === 'laps' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+                    >
+                      ⏱️ Okrążenia
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('manage')}
+                      className={`px-6 py-3 font-semibold ${activeTab === 'manage' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+                    >
+                      🛠️ Zarządzaj
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('settings')}
+                      className={`px-6 py-3 font-semibold ${activeTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+                    >
+                      ⚙️ Ustawienia
+                    </button>
+                  </div>
+
+                  <div className="p-6">
+                    {/* UPLOAD TAB */}
+                    {activeTab === 'upload' && (
+                      <div className="space-y-6">
+                        <h2 className="text-2xl font-bold">Import danych</h2>
+                        
+                        {/* NAZWA WYDARZENIA */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h3 className="font-bold mb-2">🏁 Nazwa wydarzenia</h3>
+                          <input
+                            type="text"
+                            value={eventName}
+                            onChange={(e) => setEventName(e.target.value)}
+                            placeholder="np. Maraton Warszawski 2025"
+                            className="w-full px-4 py-2 border rounded-lg text-lg"
+                          />
+                          <div className="text-sm mt-2 text-blue-700">
+                            Nazwa wyświetlana w widoku publicznym
+                          </div>
+                        </div>
+
+                        {/* GUNSTART + Dystans w jednej sekcji */}
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                          <div className="grid md:grid-cols-2 gap-4">
+                            {/* GUNSTART */}
+                            <div>
+                              <h3 className="font-bold mb-2">🔫 START</h3>
+                              <div className="flex gap-2 mb-2">
+                                <button
+                                  onClick={setManualGunStart}
+                                  className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-bold flex-1 justify-center"
+                                >
+                                  <Icons.Gun />
+                                  TERAZ
+                                </button>
+                                <button
+                                  onClick={setCustomGunStart}
+                                  className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 font-bold flex-1 justify-center"
+                                >
+                                  ✏️ WPISZ
+                                </button>
+                              </div>
+                              {gunStart && (
+                                <div className="text-sm mt-2 text-green-700 font-bold">
+                                  ✅ Aktywny: {new Date(gunStart * 1000).toLocaleString('pl-PL')}
+                                </div>
+                              )}
+                              {allGunStarts.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs text-gray-600 mb-1">Wybierz start:</p>
+                                  <select
+                                    onChange={(e) => setGunStart(parseFloat(e.target.value))}
+                                    value={gunStart || ''}
+                                    className="border rounded px-2 py-1 text-sm w-full bg-white"
+                                  >
+                                    {allGunStarts.map((gs, idx) => (
+                                      <option key={idx} value={gs.timestamp}>
+                                        {gs.timestamp === gunStart ? '✓ ' : ''}{gs.datetime} ({gs.reader})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Dystans okrążenia */}
+                            <div>
+                              <h3 className="font-bold mb-2">📏 Dystans okrążenia</h3>
+                              <select
+                                value={lapDistance === 0 ? 'custom' : lapDistance}
+                                onChange={(e) => {
+                                  if (e.target.value === 'custom') {
+                                    setLapDistance(0);
+                                    setCustomDistance('');
+                                  } else {
+                                    const val = parseFloat(e.target.value);
+                                    setLapDistance(val);
+                                    setCustomDistance('');
+                                    console.log('✅ Dystans zmieniony na:', val, 'km');
+                                  }
+                                }}
+                                className="border rounded px-3 py-2 w-full bg-white text-lg mb-2"
+                              >
+                                <option value="0.4">0.4 km (400m)</option>
+                                <option value="0.5">0.5 km (500m)</option>
+                                <option value="1.0">1.0 km</option>
+                                <option value="1.5">1.5 km</option>
+                                <option value="2.0">2.0 km</option>
+                                <option value="5.0">5.0 km</option>
+                                <option value="10.0">10.0 km</option>
+                                <option value="custom">🔧 Własna wartość</option>
+                              </select>
+                              
+                              {/* Pole do wpisania własnej wartości */}
+                              {lapDistance === 0 && (
+                                <div className="mb-2">
+                                  <input
+                                    type="text"
+                                    value={customDistance}
+                                    onChange={(e) => setCustomDistance(e.target.value)}
+                                    placeholder="np. 12.450"
+                                    className="border rounded px-3 py-2 w-full text-lg"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      const val = parseFloat(customDistance.replace(',', '.'));
+                                      if (!isNaN(val) && val > 0) {
+                                        setLapDistance(val);
+                                        console.log('✅ Własny dystans ustawiony na:', val, 'km');
+                                      } else {
+                                        alert('Podaj prawidłową wartość (np. 12.450)');
+                                      }
+                                    }}
+                                    className="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+                                  >
+                                    Ustaw {customDistance} km
+                                  </button>
+                                </div>
+                              )}
+                              
+                              <div className="text-sm mt-2 text-blue-700 font-bold">
+                                ✅ Aktywny: {lapDistance} km / okrążenie
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Minimalny czas okrążenia */}
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                          <h3 className="font-bold mb-2">⏱️ Filtr okrążeń</h3>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Blokuje wielokrotne odczyty tego samego zawodnika (np. chodzenie koło mety)
+                          </p>
+                          <div className="flex items-center gap-4">
+                            <label className="text-sm font-medium">Minimalny czas między okrążeniami:</label>
+                            <input
+                              type="number"
+                              value={minLapTime}
+                              onChange={(e) => setMinLapTime(parseInt(e.target.value) || 0)}
+                              className="border rounded px-3 py-2 w-24"
+                              min="0"
+                              max="3600"
+                            />
+                            <span className="text-sm">sekund</span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-2">
+                            💡 Zalecane: 40-60s dla 400m, 180-240s dla 1km, 600-900s dla 5km
+                          </div>
+                        </div>
+
+                        {/* File uploads */}
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <Icons.Upload />
+                            <p className="mt-2 font-semibold">ChronoTrack CSV</p>
+                            <p className="text-xs text-gray-500 mb-2">
+                              Obsługuje surowy format TO~ i CSV
+                            </p>
+                            <input
+                              type="file"
+                              accept=".csv,.txt"
+                              onChange={handleChronotrackUpload}
+                              className="mt-2"
+                              multiple
+                            />
+                            <p className="text-xs text-green-600 mt-2">
+                              ✅ Możesz wgrać wiele plików naraz!
+                            </p>
+                          </div>
+
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <Icons.Upload />
+                            <p className="mt-2 font-semibold">Uczestnicy CSV</p>
+                            <input
+                              type="file"
+                              accept=".csv"
+                              onChange={handleParticipantsUpload}
+                              className="mt-2"
+                            />
+                            <p className="text-xs text-gray-500 mt-2">
+                              ℹ️ Aktualizuje dane dla istniejących TAGów
+                            </p>
+                            {participantsData.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Usunąć WSZYSTKICH ${participantsData.length} uczestników?\n\nTo nie usuwa odczytów - tylko dane uczestników.`)) {
+                                    setParticipantsData([]);
+                                    alert('🗑️ Usunięto wszystkich uczestników');
+                                  }
+                                }}
+                                className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+                              >
+                                🗑️ Wyczyść wszystkich
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Odczyty</p>
+                            <p className="text-2xl font-bold">{chronotrackData.length}</p>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Uczestnicy</p>
+                            <p className="text-2xl font-bold">{participantsData.length}</p>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Dystans/okr</p>
+                            <p className="text-2xl font-bold">{lapDistance} km</p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={saveToLocalStorage}
+                          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        >
+                          <Icons.Save />
+                          Zapisz teraz
+                        </button>
+                      </div>
+                    )}
+
+                    {/* LIVE TAB */}
+                    {activeTab === 'live' && (
+                      <div className="space-y-6">
+                        <h2 className="text-2xl font-bold">Tryb Live</h2>
+
+                        {/* Bridge Connection */}
+                        <div className="bg-gray-50 border rounded-lg p-4">
+                          <h3 className="font-bold mb-3">📡 Połączenie Bridge (ChronoTrack CCS)</h3>
+                          <div className="flex gap-2 mb-3">
+                            <input
+                              type="text"
+                              value={wsUrl}
+                              onChange={(e) => setWsUrl(e.target.value)}
+                              className="flex-1 border rounded px-3 py-2"
+                              placeholder="ws://192.168.1.100:8081"
+                            />
+                            <button
+                              onClick={() => setLiveMode(!liveMode)}
+                              className={`px-6 py-2 rounded font-bold ${liveMode ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
+                            >
+                              {liveMode ? 'STOP' : 'START'}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {wsConnected ? <Icons.Wifi /> : <Icons.WifiOff />}
+                            <span className={wsConnected ? 'text-green-600' : 'text-gray-400'}>
+                              {wsConnected ? '✅ Połączono' : '❌ Rozłączono'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Results Broadcast */}
+                        <div className="bg-gray-50 border rounded-lg p-4">
+                          <h3 className="font-bold mb-3">📺 Broadcast Wyników (Public View)</h3>
+                          <div className="flex gap-2 mb-3">
+                            <input
+                              type="text"
+                              value={resultsServerUrl}
+                              onChange={(e) => setResultsServerUrl(e.target.value)}
+                              className="flex-1 border rounded px-3 py-2"
+                              placeholder="ws://192.168.1.100:3002"
+                            />
+                            <button
+                              onClick={() => {
+                                if (resultsServerConnected) {
+                                  disconnectResultsServer();
+                                } else {
+                                  connectResultsServer();
+                                }
+                              }}
+                              className={`px-6 py-2 rounded font-bold ${resultsServerConnected ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+                            >
+                              {resultsServerConnected ? 'STOP' : 'START'}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {resultsServerConnected ? <Icons.Wifi /> : <Icons.WifiOff />}
+                            <span className={resultsServerConnected ? 'text-green-600' : 'text-gray-400'}>
+                              {resultsServerConnected ? '✅ Broadcast aktywny' : '❌ Nieaktywny'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {lastReading && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h3 className="font-bold mb-2">📍 Ostatni odczyt</h3>
+                            <div className="font-mono">
+                              <div>TAG: {lastReading.tag}</div>
+                              <div>Czas: {lastReading.time}</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* RESULTS TAB */}
+                    {activeTab === 'results' && (
+                      <div>
+                        <div className="flex justify-between items-center mb-6">
+                          <h2 className="text-2xl font-bold">Wyniki</h2>
+                          <button
+                            onClick={exportResults}
+                            disabled={results.length === 0}
+                            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
+                          >
+                            <Icons.Download />
+                            Eksportuj CSV
+                          </button>
+                        </div>
+
+                        {!gunStart && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                            ⚠️ Ustaw GUNSTART
+                          </div>
+                        )}
+
+                        {results.length === 0 && gunStart && (
+                          <p className="text-gray-500 text-center py-8">Brak danych</p>
+                        )}
+
+                        {results.length > 0 && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-sm">
+                              <thead>
+                                <tr className="bg-gray-100">
+                                  <th className="border p-2 text-sm">Poz</th>
+                                  <th className="border p-2 text-sm">Nr</th>
+                                  <th className="border p-2 text-sm">TAG</th>
+                                  <th className="border p-2 text-sm">Imię</th>
+                                  <th className="border p-2 text-sm">Nazwisko</th>
+                                  <th className="border p-2 text-sm">Płeć</th>
+                                  <th className="border p-2 text-sm">M. w kat.</th>
+                                  <th className="border p-2 text-sm">Kat. wiek.</th>
+                                  <th className="border p-2 text-sm">Okrążenia</th>
+                                  <th className="border p-2 text-sm">Dystans (km)</th>
+                                  <th className="border p-2 text-sm">Czas</th>
+                                  <th className="border p-2 text-sm">Akcje</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {resultsWithRanks.map((r, idx) => (
+                                  <tr key={r.tag} className="hover:bg-blue-50">
+                                    <td className="border p-2 text-center font-bold text-sm">{idx + 1}</td>
+                                    <td className="border p-2 text-center text-sm">{r.bib}</td>
+                                    <td className="border p-2 font-mono text-xs">{r.tag}</td>
+                                    <td className="border p-2 text-sm">{r.firstName}</td>
+                                    <td className="border p-2 text-sm">{r.lastName}</td>
+                                    <td className="border p-2 text-center text-sm">
+                                      {r.gender === 'M' ? 'M' : r.gender === 'K' ? 'K' : '-'}
+                                    </td>
+                                    <td className="border p-2 text-center font-semibold text-blue-600 text-sm">
+                                      {r.genderRank || '-'}
+                                    </td>
+                                    <td className="border p-2 text-center text-xs">
+                                      {r.category || '-'}
+                                      {r.categoryRank && <div className="text-xs text-gray-600">#{r.categoryRank}</div>}
+                                      {r.isExcludedFromCategory && (
+                                        <div className="text-xs text-orange-600 font-semibold mt-1">
+                                          🏆 OPEN
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="border p-2 text-center font-bold text-sm">{r.laps}</td>
+                                    <td className="border p-2 text-center font-bold text-blue-600 text-sm">{r.distance} km</td>
+                                    <td className="border p-2 text-center font-mono text-sm">
+                                      <div>{formatTime(r.totalTime)}</div>
+                                      {r.lastLapTime && (
+                                        <div className="text-xs text-red-600 mt-1">
+                                          od {getTimeSinceLastReading(r.lastLapTime)}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="border p-2">
+                                      <div className="flex gap-1 justify-center">
+                                        <button
+                                          onClick={() => addManualLap(r.tag)}
+                                          className="flex items-center gap-1 bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
+                                        >
+                                          <Icons.Plus /> Dodaj
+                                        </button>
+                                        <button
+                                          onClick={() => removeLastLap(r.tag)}
+                                          className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600"
+                                        >
+                                          <Icons.Minus /> Usuń
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* LAPS TAB */}
+                    {activeTab === 'laps' && (
+                      <div>
+                        <h2 className="text-2xl font-bold mb-6">Czasy okrążeń</h2>
+
+                        {results.length === 0 ? (
+                          <p className="text-gray-500 text-center py-8">Brak danych</p>
+                        ) : (
+                          <div className="space-y-6">
+                            {results.map(r => (
+                              <div key={r.tag} className="bg-gray-50 rounded-lg p-4">
+                                <h3 className="font-bold text-lg mb-3">
+                                  {r.bib} - {r.firstName} {r.lastName}
+                                </h3>
+                                <table className="w-full border-collapse text-sm">
+                                  <thead>
+                                    <tr className="bg-gray-200">
+                                      <th className="border p-2">Nr</th>
+                                      <th className="border p-2">Dystans (km)</th>
+                                      <th className="border p-2">Czas okrążenia</th>
+                                      <th className="border p-2">Czas od startu</th>
+                                      <th className="border p-2">Data</th>
+                                      <th className="border p-2">Akcja</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {r.lapDetails.map((lap, idx) => {
+                                      const prevLap = idx > 0 ? r.lapDetails[idx - 1] : null;
+                                      const lapDuration = prevLap ? lap.timestamp - prevLap.timestamp : (gunStart ? lap.timestamp - gunStart : null);
+                                      const totalTime = gunStart ? lap.timestamp - gunStart : null;
+                                      const distance = ((idx + 1) * lapDistance).toFixed(2);
+                                      const isManual = lap.isManual === true;
+                                      
+                                      return (
+                                        <tr key={lap.id} className={`hover:bg-gray-100 ${isManual ? 'bg-green-50' : ''}`}>
+                                          <td className="border p-2 text-center">
+                                            {idx + 1}
+                                            {isManual && <span className="ml-1 text-green-600 font-bold" title="Okrążenie dodane ręcznie przez admina">✓</span>}
+                                          </td>
+                                          <td className="border p-2 text-center font-bold text-blue-600">{distance} km</td>
+                                          <td className="border p-2 text-center font-mono">{formatTime(lapDuration)}</td>
+                                          <td className="border p-2 text-center font-mono">{formatTime(totalTime)}</td>
+                                          <td className="border p-2">
+                                            {lap.datetime}
+                                            {isManual && <span className="ml-2 text-xs bg-green-200 text-green-800 px-2 py-1 rounded">MANUAL</span>}
+                                          </td>
+                                          <td className="border p-2 text-center">
+                                            <button
+                                              onClick={() => {
+                                                if (window.confirm(`Usunąć okrążenie ${idx + 1}?`)) {
+                                                  deleteLapFromResults(r.tag, idx);
+                                                }
+                                              }}
+                                              className="text-red-600 hover:text-red-800"
+                                            >
+                                              <Icons.Trash />
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* MANAGE TAB */}
+                    {activeTab === 'manage' && (
+                      <div>
+                        <h2 className="text-2xl font-bold mb-6">Zarządzaj odczytami</h2>
+
+                        {chronotrackData.length === 0 ? (
+                          <p className="text-gray-500 text-center py-8">Brak danych</p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-sm">
+                              <thead>
+                                <tr className="bg-gray-100">
+                                  <th className="border p-2">TAG</th>
+                                  <th className="border p-2">Unix</th>
+                                  <th className="border p-2">Data</th>
+                                  <th className="border p-2">Czytnik</th>
+                                  <th className="border p-2">Status</th>
+                                  <th className="border p-2">Akcja</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {chronotrackData.map(reading => {
+                                  const isDeleted = deletedReadings.has(reading.id);
+                                  const isBeforeStart = gunStart && reading.timestamp < gunStart;
+                                  
+                                  return (
+                                    <tr key={reading.id} className={isDeleted ? 'bg-red-50 opacity-50' : isBeforeStart ? 'bg-yellow-50' : 'hover:bg-blue-50'}>
+                                      <td className="border p-2 font-mono">{reading.tag}</td>
+                                      <td className="border p-2 font-mono text-xs">{reading.raw}</td>
+                                      <td className="border p-2">{reading.datetime}</td>
+                                      <td className="border p-2">{reading.reader}</td>
+                                      <td className="border p-2 text-center">
+                                        {isDeleted && <span className="text-red-600">Usunięty</span>}
+                                        {!isDeleted && isBeforeStart && <span className="text-yellow-600">Przed startem</span>}
+                                        {!isDeleted && !isBeforeStart && <span className="text-green-600">Aktywny</span>}
+                                      </td>
+                                      <td className="border p-2 text-center">
+                                        {isDeleted ? (
+                                          <button onClick={() => restoreReading(reading.id)} className="text-green-600 hover:text-green-800">
+                                            Przywróć
+                                          </button>
+                                        ) : (
+                                          <button onClick={() => deleteReading(reading.id)} className="text-red-600 hover:text-red-800">
+                                            <Icons.Trash />
+                                          </button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* SETTINGS TAB */}
+                    {activeTab === 'settings' && (
+                      <div className="space-y-6">
+                        <h2 className="text-2xl font-bold mb-6">⚙️ Ustawienia</h2>
+
+                        {/* Kategorie wiekowe */}
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                          <h3 className="text-xl font-bold mb-4">🏆 Kategorie wiekowe</h3>
+                          
+                          {/* Opcja wykluczania zwycięzców OPEN */}
+                          <div className="bg-white rounded-lg p-4 mb-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <input
+                                type="checkbox"
+                                id="excludeOpenWinners"
+                                checked={excludeOpenWinners}
+                                onChange={(e) => setExcludeOpenWinners(e.target.checked)}
+                                className="w-5 h-5"
+                              />
+                              <label htmlFor="excludeOpenWinners" className="font-semibold text-lg">
+                                Wyklucz zwycięzców OPEN z kategorii wiekowych
+                              </label>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-3">
+                              Zapobiega podwójnemu nagradzaniu - zwycięzcy kategorii OPEN nie będą uwzględniani w kategoriach wiekowych
+                            </p>
+                            {excludeOpenWinners && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">Wyklucz TOP</span>
+                                <input
+                                  type="number"
+                                  value={openWinnersToExclude}
+                                  onChange={(e) => setOpenWinnersToExclude(parseInt(e.target.value) || 1)}
+                                  className="w-16 px-2 py-1 border rounded text-center"
+                                  min="1"
+                                  max="10"
+                                />
+                                <span className="text-sm">z każdej płci</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Lista kategorii */}
+                          <div className="space-y-3">
+                            <div className="grid md:grid-cols-2 gap-4">
+                              {/* Kategorie męskie */}
+                              <div>
+                                <h4 className="font-bold mb-3 text-blue-600">👨 Kategorie męskie</h4>
+                                <div className="space-y-2">
+                                  {ageCategories.filter(cat => cat.gender === 'M').map((cat, idx) => (
+                                    <div key={cat.name} className="bg-white rounded p-3 border">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                          <input
+                                            type="text"
+                                            value={cat.name}
+                                            onChange={(e) => {
+                                              const newCategories = [...ageCategories];
+                                              const catIdx = newCategories.findIndex(c => c.name === cat.name);
+                                              newCategories[catIdx].name = e.target.value;
+                                              setAgeCategories(newCategories);
+                                            }}
+                                            className="w-16 px-2 py-1 border rounded text-center font-bold"
+                                          />
+                                          <span className="text-sm">wiek:</span>
+                                          <input
+                                            type="number"
+                                            value={cat.minAge}
+                                            onChange={(e) => {
+                                              const newCategories = [...ageCategories];
+                                              const catIdx = newCategories.findIndex(c => c.name === cat.name);
+                                              newCategories[catIdx].minAge = parseInt(e.target.value) || 0;
+                                              setAgeCategories(newCategories);
+                                            }}
+                                            className="w-16 px-2 py-1 border rounded text-center"
+                                            min="0"
+                                            max="99"
+                                          />
+                                          <span className="text-sm">-</span>
+                                          <input
+                                            type="number"
+                                            value={cat.maxAge}
+                                            onChange={(e) => {
+                                              const newCategories = [...ageCategories];
+                                              const catIdx = newCategories.findIndex(c => c.name === cat.name);
+                                              newCategories[catIdx].maxAge = parseInt(e.target.value) || 99;
+                                              setAgeCategories(newCategories);
+                                            }}
+                                            className="w-16 px-2 py-1 border rounded text-center"
+                                            min="0"
+                                            max="99"
+                                          />
+                                        </div>
+                                        <button
+                                          onClick={() => {
+                                            const newCategories = ageCategories.filter(c => c.name !== cat.name);
+                                            setAgeCategories(newCategories);
+                                          }}
+                                          className="text-red-600 hover:text-red-800"
+                                          title="Usuń kategorię"
+                                        >
+                                          <Icons.Trash />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => {
+                                      const newCategory = {
+                                        name: 'M' + (new Date().getFullYear() - 2000),
+                                        minAge: 18,
+                                        maxAge: 99,
+                                        gender: 'M'
+                                      };
+                                      setAgeCategories([...ageCategories, newCategory]);
+                                    }}
+                                    className="w-full p-2 border-2 border-dashed border-blue-300 rounded text-blue-600 hover:bg-blue-50"
+                                  >
+                                    <Icons.Plus className="w-4 h-4 mx-auto" />
+                                    Dodaj kategorię męską
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Kategorie kobiece */}
+                              <div>
+                                <h4 className="font-bold mb-3 text-pink-600">👩 Kategorie kobiece</h4>
+                                <div className="space-y-2">
+                                  {ageCategories.filter(cat => cat.gender === 'K').map((cat, idx) => (
+                                    <div key={cat.name} className="bg-white rounded p-3 border">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                          <input
+                                            type="text"
+                                            value={cat.name}
+                                            onChange={(e) => {
+                                              const newCategories = [...ageCategories];
+                                              const catIdx = newCategories.findIndex(c => c.name === cat.name);
+                                              newCategories[catIdx].name = e.target.value;
+                                              setAgeCategories(newCategories);
+                                            }}
+                                            className="w-16 px-2 py-1 border rounded text-center font-bold text-pink-600"
+                                          />
+                                          <span className="text-sm">wiek:</span>
+                                          <input
+                                            type="number"
+                                            value={cat.minAge}
+                                            onChange={(e) => {
+                                              const newCategories = [...ageCategories];
+                                              const catIdx = newCategories.findIndex(c => c.name === cat.name);
+                                              newCategories[catIdx].minAge = parseInt(e.target.value) || 0;
+                                              setAgeCategories(newCategories);
+                                            }}
+                                            className="w-16 px-2 py-1 border rounded text-center"
+                                            min="0"
+                                            max="99"
+                                          />
+                                          <span className="text-sm">-</span>
+                                          <input
+                                            type="number"
+                                            value={cat.maxAge}
+                                            onChange={(e) => {
+                                              const newCategories = [...ageCategories];
+                                              const catIdx = newCategories.findIndex(c => c.name === cat.name);
+                                              newCategories[catIdx].maxAge = parseInt(e.target.value) || 99;
+                                              setAgeCategories(newCategories);
+                                            }}
+                                            className="w-16 px-2 py-1 border rounded text-center"
+                                            min="0"
+                                            max="99"
+                                          />
+                                        </div>
+                                        <button
+                                          onClick={() => {
+                                            const newCategories = ageCategories.filter(c => c.name !== cat.name);
+                                            setAgeCategories(newCategories);
+                                          }}
+                                          className="text-red-600 hover:text-red-800"
+                                          title="Usuń kategorię"
+                                        >
+                                          <Icons.Trash />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => {
+                                      const newCategory = {
+                                        name: 'K' + (new Date().getFullYear() - 2000),
+                                        minAge: 18,
+                                        maxAge: 99,
+                                        gender: 'K'
+                                      };
+                                      setAgeCategories([...ageCategories, newCategory]);
+                                    }}
+                                    className="w-full p-2 border-2 border-dashed border-pink-300 rounded text-pink-600 hover:bg-pink-50"
+                                  >
+                                    <Icons.Plus className="w-4 h-4 mx-auto" />
+                                    Dodaj kategorię kobiecą
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 p-3 bg-blue-100 rounded text-sm">
+                            <p><strong>💡 Wskazówka:</strong> Kategorie wiekowe są automatycznie obliczane na podstawie roku urodzenia w danych uczestników. Upewnij się, że dane zawierają kolumnę "birthYear" lub "yearOfBirth".</p>
+                          </div>
+                        </div>
+
+                        {/* Inne ustawienia */}
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-xl font-bold mb-4">🔧 Ustawienia techniczne</h3>
+                          
+                          <div className="grid md:grid-cols-2 gap-6">
+                            {/* Auto-save */}
+                            <div>
+                              <div className="flex items-center gap-3 mb-2">
+                                <input
+                                  type="checkbox"
+                                  id="autoSaveEnabled"
+                                  checked={autoSaveEnabled}
+                                  onChange={(e) => setAutoSaveEnabled(e.target.checked)}
+                                  className="w-5 h-5"
+                                />
+                                <label htmlFor="autoSaveEnabled" className="font-semibold">
+                                  Auto-zapis danych
+                                </label>
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                Automatycznie zapisuje dane w przeglądarce co 30 sekund
+                              </p>
+                              {lastSaveTime && (
+                                <p className="text-xs text-green-600 mt-1">
+                                  Ostatni zapis: {new Date(lastSaveTime).toLocaleString('pl-PL')}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Format eksportu */}
+                            <div>
+                              <h4 className="font-semibold mb-2">📁 Format eksportu</h4>
+                              <p className="text-sm text-gray-600">
+                                Dane są eksportowane w formacie CSV z polskimi znakami (UTF-8)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<LapCounterApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>

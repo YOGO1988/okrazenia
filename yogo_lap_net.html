@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YO&GO Lap - Wyniki na żywo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-custom {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white overflow-hidden">
+    
+    <!-- HEADER - Exact copy -->
+    <div class="bg-black/40 backdrop-blur-md border-b border-white/20 px-6 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="text-2xl font-bold">YO&GO Lap - Wyniki na żywo</div>
+                <div class="h-8 w-px bg-white/30"></div>
+                <div class="text-xl font-semibold" id="eventName">Wyścig</div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <div class="text-xs text-gray-400">Czas od startu</div>
+                    <div class="text-2xl font-mono font-bold text-green-400" id="timer">--:--:--</div>
+                </div>
+                <div class="px-3 py-1 bg-red-600 rounded-full text-sm font-bold animate-pulse-custom">
+                    ● LIVE
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="max-w-7xl mx-auto p-6 space-y-4">
+        
+        <!-- TOP 5 CAROUSEL - Exact copy -->
+        <div class="grid md:grid-cols-2 gap-4">
+            <!-- MĘŻCZYŹNI -->
+            <div class="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-blue-400" id="menTop"></div>
+            
+            <!-- KOBIETY -->
+            <div class="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-pink-400" id="womenTop"></div>
+        </div>
+
+        <!-- WYNIKI - Scrollable (NOT auto-scrolling!) -->
+        <div class="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
+            <h2 class="text-2xl font-bold mb-4">Wyniki</h2>
+            <div class="overflow-y-auto h-[70vh] pr-2" id="resultsList" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent;">
+                <div class="text-center text-gray-400 py-32">Oczekiwanie na dane...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div class="fixed bottom-4 right-4 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-md" id="status">
+        <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse-custom"></div>
+        <span>Łączenie...</span>
+    </div>
+
+    <script>
+        // ============================================
+        // KONFIGURACJA
+        // ============================================
+        const WS_URL = 'ws://192.168.0.103:3002';
+        const CAROUSEL_SPEED = 5000; // 5 sekund
+        // ============================================
+
+        let ws = null;
+        let currentData = null;
+        let animatedIndex = 0;
+        let carouselInterval = null;
+
+        // Format czasu
+        function formatElapsedTime(seconds) {
+            if (seconds < 0) return '00:00:00';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // Update timer
+        function updateTimer() {
+            const timerEl = document.getElementById('timer');
+            if (currentData && currentData.gunStart) {
+                let gunStartTime;
+                
+                // Handle different gunStart formats
+                if (typeof currentData.gunStart === 'number') {
+                    // Unix timestamp - check if it's in seconds or milliseconds
+                    if (currentData.gunStart < 10000000000) {
+                        // Seconds (< year 2286)
+                        gunStartTime = currentData.gunStart * 1000;
+                    } else {
+                        // Milliseconds
+                        gunStartTime = currentData.gunStart;
+                    }
+                } else {
+                    // ISO string or other format
+                    gunStartTime = new Date(currentData.gunStart).getTime();
+                }
+                
+                const now = Date.now();
+                const elapsed = Math.floor((now - gunStartTime) / 1000);
+                timerEl.textContent = formatElapsedTime(elapsed);
+            } else {
+                timerEl.textContent = '--:--:--';
+            }
+        }
+
+        // Get TOP 5 by gender
+        function getTop5(gender) {
+            if (!currentData || !currentData.results) return [];
+            return currentData.results
+                .filter(r => r.gender === gender)
+                .sort((a, b) => (b.lapsCount || b.laps || 0) - (a.lapsCount || a.laps || 0))
+                .slice(0, 5);
+        }
+
+        // Render TOP card (carousel)
+        function renderTopCard(results, index, containerEl, isMen) {
+            if (!results || results.length === 0) {
+                containerEl.innerHTML = '<p class="text-gray-400 text-center py-2 text-sm">Brak wyników</p>';
+                return;
+            }
+
+            if (!results[index]) return;
+
+            const r = results[index];
+            const laps = r.lapsCount || r.laps || 0;
+            const distance = parseFloat(r.totalDistance || r.distance || 0);
+            const firstName = r.firstName || r.fullName?.split(' ')[0] || r.name?.split(' ')[0] || '';
+            const lastName = r.lastName || r.fullName?.split(' ').slice(1).join(' ') || r.name?.split(' ').slice(1).join(' ') || '';
+            const bib = r.bibNumber || r.bib || r.number || '?';
+
+            const nameColor = isMen ? 'text-blue-300' : 'text-pink-300';
+
+            containerEl.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <!-- Position number -->
+                    <div class="text-4xl font-black">${index + 1}.</div>
+                    <!-- Numer -->
+                    <div class="text-5xl font-black">${bib}</div>
+                    <!-- Imię -->
+                    <div class="flex-1">
+                        <div class="text-2xl font-bold ${nameColor}">
+                            ${firstName} ${lastName}
+                        </div>
+                    </div>
+                    <!-- Stats -->
+                    <div class="text-right">
+                        <div class="text-3xl font-black">${laps}</div>
+                        <div class="text-xs text-gray-400">okrążeń</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold">${distance.toFixed(2)} km</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update carousel
+        function updateCarousel() {
+            const menResults = getTop5('M');
+            const womenResults = getTop5('K');
+
+            const menContainer = document.getElementById('menTop');
+            const womenContainer = document.getElementById('womenTop');
+
+            // Cycle through TOP 5
+            animatedIndex = animatedIndex % 5;
+
+            renderTopCard(menResults, animatedIndex, menContainer, true);
+            renderTopCard(womenResults, animatedIndex, womenContainer, false);
+
+            animatedIndex++;
+        }
+
+        // Start carousel
+        function startCarousel() {
+            if (carouselInterval) clearInterval(carouselInterval);
+            updateCarousel();
+            carouselInterval = setInterval(updateCarousel, CAROUSEL_SPEED);
+        }
+
+        // Render all results (SCROLLABLE, not auto-scrolling!)
+        function renderResults() {
+            const container = document.getElementById('resultsList');
+            
+            if (!currentData || !currentData.results || currentData.results.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-32">Oczekiwanie na dane...</div>';
+                return;
+            }
+
+            // Sort by laps
+            const sorted = [...currentData.results].sort((a, b) => 
+                (b.lapsCount || b.laps || 0) - (a.lapsCount || a.laps || 0)
+            );
+
+            // Calculate ranks by gender
+            const byGender = { M: [], K: [] };
+            sorted.forEach(r => {
+                if (r.gender === 'M' || r.gender === 'K') {
+                    byGender[r.gender].push(r);
+                }
+            });
+
+            // Calculate age category ranks
+            const byCategory = {};
+            sorted.forEach(r => {
+                const cat = r.ageCategory || r.category;
+                if (cat) {
+                    if (!byCategory[cat]) byCategory[cat] = [];
+                    byCategory[cat].push(r);
+                }
+            });
+
+            container.innerHTML = sorted.map((r, idx) => {
+                const bib = r.bibNumber || r.bib || r.number || '?';
+                const firstName = r.firstName || r.fullName?.split(' ')[0] || r.name?.split(' ')[0] || '';
+                const lastName = r.lastName || r.fullName?.split(' ').slice(1).join(' ') || r.name?.split(' ').slice(1).join(' ') || '';
+                const city = r.city || r.town || '';
+                const club = r.club || r.team || '';
+                const laps = r.lapsCount || r.laps || 0;
+                const distance = parseFloat(r.totalDistance || r.distance || 0);
+                const gender = r.gender || '';
+                const category = r.ageCategory || r.category || '';
+
+                // Calculate gender rank
+                let genderRank = null;
+                if (gender === 'M' || gender === 'K') {
+                    genderRank = byGender[gender].findIndex(x => 
+                        (x.bibNumber || x.bib) === (r.bibNumber || r.bib)
+                    ) + 1;
+                }
+
+                // Calculate category rank
+                let categoryRank = null;
+                if (category && byCategory[category]) {
+                    categoryRank = byCategory[category].findIndex(x => 
+                        (x.bibNumber || x.bib) === (r.bibNumber || r.bib)
+                    ) + 1;
+                }
+
+                const genderColor = gender === 'K' ? 'bg-pink-500/30 text-pink-300' : 'bg-blue-500/30 text-blue-300';
+
+                return `
+                    <div class="p-3 mb-2 bg-white/5 rounded flex items-center justify-between border-b border-white/10">
+                        <div class="flex items-center gap-4">
+                            <div class="text-xl font-bold w-16 text-center">${idx + 1}</div>
+                            <div class="text-lg font-semibold">
+                                ${bib} - ${firstName} ${lastName}
+                            </div>
+                            <div class="text-sm text-gray-400">
+                                ${city ? `<span>${city}</span>` : ''}
+                                ${club ? `<span class="ml-2">• ${club}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <!-- Gender rank -->
+                            <div class="text-right w-20">
+                                ${genderRank ? `
+                                    <div class="text-sm font-semibold px-2 py-1 rounded ${genderColor}">
+                                        ${gender}-${genderRank}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <!-- Age category rank -->
+                            <div class="text-right w-24">
+                                ${category && categoryRank ? `
+                                    <div class="text-sm font-semibold px-2 py-1 rounded ${gender === 'K' ? 'text-pink-300' : ''}">
+                                        ${category} #${categoryRank}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <!-- Laps -->
+                            <div class="text-right w-24">
+                                <div class="text-2xl font-mono font-bold">${laps}</div>
+                                <div class="text-xs text-gray-400">okrążeń</div>
+                            </div>
+                            <!-- Distance -->
+                            <div class="text-right w-32">
+                                <div class="text-xl font-bold">${distance.toFixed(2)} km</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update all UI
+        function updateUI() {
+            updateTimer();
+            
+            // Update event name if available
+            if (currentData && currentData.eventName) {
+                document.getElementById('eventName').textContent = currentData.eventName;
+            }
+            
+            startCarousel();
+            renderResults();
+        }
+
+        // WebSocket connection
+        function connect() {
+            console.log('🔌 Connecting to:', WS_URL);
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                console.log('✅ Connected!');
+                const statusEl = document.getElementById('status');
+                statusEl.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-md bg-green-500/30 border border-green-500';
+                statusEl.querySelector('span').textContent = 'Połączono';
+                statusEl.querySelector('div').className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse-custom';
+
+                // Request results
+                ws.send(JSON.stringify({ type: 'request_results' }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'results_update') {
+                        console.log('📊 Results update:', data.results?.length || 0, 'participants');
+                        console.log('🕐 gunStart format:', typeof data.gunStart, data.gunStart);
+                        currentData = data;
+                        updateUI();
+                    }
+                } catch (e) {
+                    console.error('❌ Parse error:', e);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('❌ WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('📡 Disconnected, reconnecting...');
+                const statusEl = document.getElementById('status');
+                statusEl.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-md bg-red-500/30 border border-red-500';
+                statusEl.querySelector('span').textContent = 'Rozłączono';
+                statusEl.querySelector('div').className = 'w-2 h-2 rounded-full bg-red-500 animate-pulse-custom';
+
+                if (carouselInterval) clearInterval(carouselInterval);
+                
+                setTimeout(connect, 3000);
+            };
+        }
+
+        // Initialize
+        connect();
+        setInterval(updateTimer, 1000);
+        
+        // Auto-request fresh data every 5 seconds
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'request_results' }));
+            }
+        }, 5000);
+
+        // Custom scrollbar
+        const style = document.createElement('style');
+        style.textContent = `
+            #resultsList::-webkit-scrollbar {
+                width: 8px;
+            }
+            #resultsList::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+            }
+            #resultsList::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 4px;
+            }
+            #resultsList::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.5);
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
