@@ -172,6 +172,7 @@
                 if (data.firstReadIsStart !== undefined) setFirstReadIsStart(data.firstReadIsStart);
                 if (data.httpPublishUrl) setHttpPublishUrl(data.httpPublishUrl);
                 if (data.httpPublishToken) setHttpPublishToken(data.httpPublishToken);
+                if (data.httpPublishEnabled !== undefined) setHttpPublishEnabled(data.httpPublishEnabled);
                 console.log('✅ Dane wczytane z localStorage');
               } catch (e) {
                 console.error('Błąd wczytywania danych:', e);
@@ -217,6 +218,7 @@
                 firstReadIsStart,
                 httpPublishUrl,
                 httpPublishToken,
+                httpPublishEnabled,
                 savedAt: new Date().toISOString()
               };
               localStorage.setItem('yogo_lap_data', JSON.stringify(data));

@@ -37,23 +37,59 @@
         </div>
     </div>
 
+    <!-- VIEW SWITCHER TABS -->
+    <div class="bg-black/30 border-b border-white/10 px-6 py-2">
+        <div class="max-w-7xl mx-auto flex gap-2">
+            <button onclick="switchView('carousel')" id="tabCarousel"
+                class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-white/20 border border-white/40">
+                🏆 Top 5 Karuzela
+            </button>
+            <button onclick="switchView('scroll')" id="tabScroll"
+                class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-white/5 border border-white/10 text-gray-400">
+                📜 Lista (płynie)
+            </button>
+            <button onclick="switchView('static')" id="tabStatic"
+                class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-white/5 border border-white/10 text-gray-400">
+                📋 Pełna lista
+            </button>
+        </div>
+    </div>
+
     <!-- MAIN CONTENT -->
-    <div class="max-w-7xl mx-auto p-6 space-y-4">
-        
-        <!-- TOP 5 CAROUSEL - Exact copy -->
-        <div class="grid md:grid-cols-2 gap-4">
-            <!-- MĘŻCZYŹNI -->
-            <div class="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-blue-400" id="menTop"></div>
-            
-            <!-- KOBIETY -->
-            <div class="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-pink-400" id="womenTop"></div>
+    <div class="max-w-7xl mx-auto p-6">
+
+        <!-- WIDOK 1: TOP 5 CAROUSEL -->
+        <div id="sectionCarousel" class="space-y-4">
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-blue-400" id="menTop"></div>
+                <div class="bg-white/10 backdrop-blur-md rounded-lg p-3 border border-pink-400" id="womenTop"></div>
+            </div>
+            <!-- Full list below carousel -->
+            <div class="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
+                <h2 class="text-2xl font-bold mb-4">Wyniki</h2>
+                <div class="overflow-y-auto h-[55vh] pr-2" id="resultsList" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent;">
+                    <div class="text-center text-gray-400 py-32">Oczekiwanie na dane...</div>
+                </div>
+            </div>
         </div>
 
-        <!-- WYNIKI - Scrollable (NOT auto-scrolling!) -->
-        <div class="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
-            <h2 class="text-2xl font-bold mb-4">Wyniki</h2>
-            <div class="overflow-y-auto h-[70vh] pr-2" id="resultsList" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent;">
-                <div class="text-center text-gray-400 py-32">Oczekiwanie na dane...</div>
+        <!-- WIDOK 2: JEŻDŻĄCA LISTA (auto-scroll) -->
+        <div id="sectionScroll" class="hidden">
+            <div class="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
+                <h2 class="text-2xl font-bold mb-4">Wyniki na żywo</h2>
+                <div class="overflow-hidden h-[80vh]" id="scrollContainer">
+                    <div id="scrollContent" class="space-y-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WIDOK 3: PEŁNA STATYCZNA LISTA -->
+        <div id="sectionStatic" class="hidden">
+            <div class="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20">
+                <h2 class="text-2xl font-bold mb-4">Wyniki</h2>
+                <div class="overflow-y-auto h-[80vh] pr-2" id="resultsListStatic" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent;">
+                    <div class="text-center text-gray-400 py-32">Oczekiwanie na dane...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -86,6 +122,138 @@
         let currentData = null;
         let animatedIndex = 0;
         let carouselInterval = null;
+        let scrollAnimFrame = null;
+        let currentView = 'carousel';
+
+        function switchView(view) {
+            currentView = view;
+            // Update tabs
+            ['carousel','scroll','static'].forEach(v => {
+                const tab = document.getElementById('tab' + v.charAt(0).toUpperCase() + v.slice(1));
+                const section = document.getElementById('section' + v.charAt(0).toUpperCase() + v.slice(1));
+                if (v === view) {
+                    tab.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-white/20 border border-white/40';
+                    section.classList.remove('hidden');
+                } else {
+                    tab.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-white/5 border border-white/10 text-gray-400';
+                    section.classList.add('hidden');
+                }
+            });
+            // Stop scroll animation
+            if (scrollAnimFrame) { cancelAnimationFrame(scrollAnimFrame); scrollAnimFrame = null; }
+            if (view === 'carousel') {
+                startCarousel();
+            } else {
+                if (carouselInterval) { clearInterval(carouselInterval); carouselInterval = null; }
+            }
+            renderCurrentView();
+            if (view === 'scroll') startAutoScroll();
+        }
+
+        function startAutoScroll() {
+            const container = document.getElementById('scrollContainer');
+            if (!container) return;
+            let pos = 0;
+            const speed = 0.5; // px per frame
+            function step() {
+                pos += speed;
+                if (pos >= container.scrollHeight - container.clientHeight + 100) {
+                    pos = 0;
+                }
+                container.scrollTop = pos;
+                scrollAnimFrame = requestAnimationFrame(step);
+            }
+            scrollAnimFrame = requestAnimationFrame(step);
+        }
+
+        function renderCurrentView() {
+            if (currentView === 'carousel' || currentView === 'static') {
+                renderResults();
+            }
+            if (currentView === 'scroll') {
+                renderScrollList();
+            }
+            if (currentView === 'static') {
+                renderStaticList();
+            }
+        }
+
+        function renderScrollList() {
+            const container = document.getElementById('scrollContent');
+            if (!container) return;
+            if (!currentData || !currentData.results || currentData.results.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-32">Oczekiwanie na dane...</div>';
+                return;
+            }
+            const sorted = [...currentData.results].sort((a, b) =>
+                (b.lapsCount || b.laps || 0) - (a.lapsCount || a.laps || 0)
+            );
+            container.innerHTML = sorted.map((r, idx) => {
+                const bib = r.bibNumber || r.bib || r.number || '?';
+                const firstName = r.firstName || '';
+                const lastName = r.lastName || '';
+                const laps = r.lapsCount || r.laps || 0;
+                const distance = parseFloat(r.totalDistance || r.distance || 0);
+                const gender = r.gender || '';
+                const genderColor = gender === 'K' ? 'border-l-pink-400' : 'border-l-blue-400';
+                return `
+                    <div class="p-3 mb-1 bg-white/5 rounded flex items-center justify-between border-l-4 ${genderColor}">
+                        <div class="flex items-center gap-4">
+                            <div class="text-xl font-bold w-10 text-center text-gray-400">${idx + 1}</div>
+                            <div class="text-4xl font-black w-16 text-center">${bib}</div>
+                            <div class="text-xl font-bold">${firstName} ${lastName}</div>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <div class="text-right">
+                                <div class="text-3xl font-mono font-bold">${laps}</div>
+                                <div class="text-xs text-gray-400">okrążeń</div>
+                            </div>
+                            <div class="text-right w-28">
+                                <div class="text-xl font-bold">${distance.toFixed(2)} km</div>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderStaticList() {
+            const container = document.getElementById('resultsListStatic');
+            if (!container) return;
+            if (!currentData || !currentData.results || currentData.results.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-32">Oczekiwanie na dane...</div>';
+                return;
+            }
+            // Same HTML as renderResults but into different container
+            const sorted = [...currentData.results].sort((a, b) =>
+                (b.lapsCount || b.laps || 0) - (a.lapsCount || a.laps || 0)
+            );
+            container.innerHTML = sorted.map((r, idx) => {
+                const bib = r.bibNumber || r.bib || r.number || '?';
+                const firstName = r.firstName || '';
+                const lastName = r.lastName || '';
+                const laps = r.lapsCount || r.laps || 0;
+                const distance = parseFloat(r.totalDistance || r.distance || 0);
+                const gender = r.gender || '';
+                const genderColor = gender === 'K' ? 'bg-pink-500/30 text-pink-300' : 'bg-blue-500/30 text-blue-300';
+                return `
+                    <div class="p-3 mb-2 bg-white/5 rounded flex items-center justify-between border-b border-white/10">
+                        <div class="flex items-center gap-4">
+                            <div class="text-xl font-bold w-16 text-center">${idx + 1}</div>
+                            <div class="text-lg font-semibold">${bib} - ${firstName} ${lastName}</div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            ${gender ? `<div class="text-sm font-semibold px-2 py-1 rounded ${genderColor}">${gender}</div>` : ''}
+                            <div class="text-right w-24">
+                                <div class="text-2xl font-mono font-bold">${laps}</div>
+                                <div class="text-xs text-gray-400">okrążeń</div>
+                            </div>
+                            <div class="text-right w-32">
+                                <div class="text-xl font-bold">${distance.toFixed(2)} km</div>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
 
         // Format czasu
         function formatElapsedTime(seconds) {
@@ -308,14 +476,11 @@
         // Update all UI
         function updateUI() {
             updateTimer();
-            
-            // Update event name if available
             if (currentData && currentData.eventName) {
                 document.getElementById('eventName').textContent = currentData.eventName;
             }
-            
-            startCarousel();
-            renderResults();
+            if (currentView === 'carousel') startCarousel();
+            renderCurrentView();
         }
 
         // WebSocket connection
