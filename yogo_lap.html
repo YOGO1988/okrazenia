@@ -482,7 +482,7 @@
             const payload = JSON.stringify({
               type: 'results_update',
               participants: participantsData,
-              results: results,
+              results: results.map(({ lapDetails, ...r }) => r),
               gunStart: gunStart,
               lapDistance: lapDistance,
               eventName: eventName
@@ -1049,10 +1049,11 @@
 
             const byTag = {};
             activeReadings.forEach(reading => {
-              if (!byTag[reading.tag]) {
-                byTag[reading.tag] = [];
+              const cleanTag = reading.tag ? reading.tag.replace(/\r/g, '').trim() : reading.tag;
+              if (!byTag[cleanTag]) {
+                byTag[cleanTag] = [];
               }
-              byTag[reading.tag].push(reading);
+              byTag[cleanTag].push(reading);
             });
 
             return Object.entries(byTag).map(([tag, readings]) => {
