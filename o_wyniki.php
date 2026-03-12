@@ -12,9 +12,13 @@ define('DATA_FILE', __DIR__ . '/wyniki_data.json');
 
 // ============================================================
 
-header('Access-Control-Allow-Origin: *');
+// Odbij dokładny origin (obsługuje też null z file://)
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+header('Access-Control-Allow-Origin: ' . $origin);
+header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-Token');
+header('Vary: Origin');
 header('Content-Type: application/json; charset=utf-8');
 
 // Obsługa OPTIONS (preflight CORS)
