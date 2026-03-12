@@ -133,6 +133,7 @@
           const [httpPublishUrl, setHttpPublishUrl] = useState('');
           const [httpPublishToken, setHttpPublishToken] = useState('yogo2025');
           const [httpPublishEnabled, setHttpPublishEnabled] = useState(false);
+          const [httpEventId, setHttpEventId] = useState('');
           const [httpPublishStatus, setHttpPublishStatus] = useState(null); // null | 'ok' | 'error'
           const [httpPublishLastAt, setHttpPublishLastAt] = useState(null);
           const httpPublishThrottleRef = useRef(null);
@@ -173,6 +174,7 @@
                 if (data.httpPublishUrl) setHttpPublishUrl(data.httpPublishUrl);
                 if (data.httpPublishToken) setHttpPublishToken(data.httpPublishToken);
                 if (data.httpPublishEnabled !== undefined) setHttpPublishEnabled(data.httpPublishEnabled);
+                if (data.httpEventId !== undefined) setHttpEventId(data.httpEventId);
                 console.log('✅ Dane wczytane z localStorage');
               } catch (e) {
                 console.error('Błąd wczytywania danych:', e);
@@ -219,6 +221,7 @@
                 httpPublishUrl,
                 httpPublishToken,
                 httpPublishEnabled,
+                httpEventId,
                 savedAt: new Date().toISOString()
               };
               localStorage.setItem('yogo_lap_data', JSON.stringify(data));
@@ -505,7 +508,8 @@
             });
 
             // Content-Type: text/plain + token w URL = brak preflight OPTIONS
-            const urlWithToken = httpPublishUrl + (httpPublishUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(httpPublishToken);
+            const eventParam = httpEventId ? '&event=' + encodeURIComponent(httpEventId) : '';
+            const urlWithToken = httpPublishUrl + (httpPublishUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(httpPublishToken) + eventParam;
             fetch(urlWithToken, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain' },
@@ -2272,6 +2276,16 @@
                                 placeholder="yogo2025"
                               />
                             </div>
+                            <div className="flex gap-2 items-center">
+                              <label className="text-sm font-medium w-14 shrink-0">Wyścig:</label>
+                              <input
+                                type="text"
+                                value={httpEventId}
+                                onChange={(e) => setHttpEventId(e.target.value.replace(/[^a-zA-Z0-9_\-]/g, ''))}
+                                className="flex-1 border rounded px-3 py-2 text-sm font-mono"
+                                placeholder="np. bieg2026 albo wyścig-sobota (bez spacji)"
+                              />
+                            </div>
                           </div>
                           <div className="flex items-center gap-3 mb-3">
                             <button
@@ -2287,18 +2301,55 @@
                               </span>
                             )}
                           </div>
-                          {httpPublishUrl && (
-                            <div className="bg-green-100 rounded p-3 text-sm">
-                              <div className="font-semibold mb-1">🔗 Link do wyników dla kibiców:</div>
-                              <code className="break-all text-xs bg-white px-2 py-1 rounded border block">
-                                {httpPublishUrl.replace('o_wyniki.php', 'yogo_lap_net.html') + '?api=' + httpPublishUrl}
-                              </code>
-                              <div className="text-xs text-gray-500 mt-1">
-                                Wgraj <strong>o_wyniki.php</strong> i <strong>yogo_lap_net.html</strong> do tego samego folderu na serwerze
+                          {httpPublishUrl && (() => {
+                            const apiUrl = httpPublishUrl + (httpEventId ? '?event=' + encodeURIComponent(httpEventId) : '');
+                            const fanLink = httpPublishUrl.replace('o_wyniki.php', 'yogo_lap_net.html') + '?api=' + encodeURIComponent(apiUrl);
+                            return (
+                              <div className="bg-green-100 rounded p-3 text-sm space-y-2">
+                                <div className="font-semibold">🔗 Link do wyników dla kibiców:</div>
+                                <code className="break-all text-xs bg-white px-2 py-1 rounded border block">{fanLink}</code>
+                                {httpEventId && <div className="text-xs text-blue-700 font-semibold">📁 Plik na serwerze: wyniki_{httpEventId}.json</div>}
+                                <div className="text-xs text-gray-500">Wgraj <strong>o_wyniki.php</strong> i <strong>yogo_lap_net.html</strong> do tego samego folderu na serwerze</div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
+
+                        {/* Zarządzanie wyścigami */}
+                        {httpPublishUrl && httpPublishToken && (() => {
+                          const [races, setRaces] = React.useState(null);
+                          const loadRaces = () => {
+                            fetch(httpPublishUrl + '?action=list&token=' + encodeURIComponent(httpPublishToken))
+                              .then(r => r.json())
+                              .then(d => setRaces(d.races || []))
+                              .catch(() => setRaces([]));
+                          };
+                          const deleteRace = (eventName) => {
+                            if (!confirm('Usunąć wyścig "' + eventName + '"?')) return;
+                            fetch(httpPublishUrl + '?token=' + encodeURIComponent(httpPublishToken) + '&event=' + encodeURIComponent(eventName), { method: 'DELETE' })
+                              .then(() => loadRaces());
+                          };
+                          return (
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="font-bold text-sm">📂 Zapisane wyścigi na serwerze</h3>
+                                <button onClick={loadRaces} className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">🔄 Odśwież</button>
+                              </div>
+                              {races === null && <p className="text-xs text-gray-500">Kliknij Odśwież aby załadować listę</p>}
+                              {races !== null && races.length === 0 && <p className="text-xs text-gray-500">Brak zapisanych wyścigów</p>}
+                              {races !== null && races.map(r => (
+                                <div key={r.event} className="flex items-center justify-between py-1 border-b text-sm">
+                                  <div>
+                                    <span className="font-mono font-bold text-xs">{r.event}</span>
+                                    <span className="text-gray-500 ml-2">{r.eventName !== r.event ? r.eventName : ''}</span>
+                                    <span className="text-xs text-gray-400 ml-2">{r.participants} ucz. • {r.savedAt ? new Date(r.savedAt).toLocaleString('pl-PL') : ''}</span>
+                                  </div>
+                                  <button onClick={() => deleteRace(r.event)} className="text-red-500 hover:text-red-700 text-xs px-2">🗑 Usuń</button>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
 
                         {lastReading && (
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
