@@ -66,12 +66,20 @@
 
     <script>
         // ============================================
-        // KONFIGURACJA
-        // URL serwera broadcast można podać jako parametr:
-        // yogo_lap_net.html?server=ws://192.168.1.100:3002
+        // KONFIGURACJA - dwa tryby działania:
+        //
+        // TRYB 1 - Internet (HTTP polling, serwer PHP):
+        //   yogo_lap_net.html?api=https://twojadomena.pl/wyniki.php
+        //
+        // TRYB 2 - Lokalna sieć (WebSocket, broadcast.js):
+        //   yogo_lap_net.html?server=ws://192.168.1.100:3002
         // ============================================
-        const WS_URL = new URLSearchParams(window.location.search).get('server') || 'ws://192.168.1.100:3002';
-        const CAROUSEL_SPEED = 5000; // 5 sekund
+        const params = new URLSearchParams(window.location.search);
+        const API_URL = params.get('api');       // tryb HTTP polling
+        const WS_URL = params.get('server') || 'ws://192.168.1.100:3002'; // tryb WebSocket
+        const MODE = API_URL ? 'http' : 'ws';
+        const CAROUSEL_SPEED = 5000;
+        const POLL_INTERVAL = 5000; // co 5 sekund pobierz wyniki
         // ============================================
 
         let ws = null;
@@ -358,16 +366,44 @@
             };
         }
 
+        // ========== TRYB HTTP POLLING ==========
+        function pollHttp() {
+            const statusEl = document.getElementById('status');
+            fetch(API_URL, { cache: 'no-store' })
+                .then(r => r.json())
+                .then(data => {
+                    statusEl.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-md bg-green-500/30 border border-green-500';
+                    statusEl.querySelector('span').textContent = 'Online ✓';
+                    statusEl.querySelector('div').className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse-custom';
+
+                    if (data.type === 'results_update') {
+                        currentData = data;
+                        updateUI();
+                    }
+                })
+                .catch(() => {
+                    statusEl.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 backdrop-blur-md bg-red-500/30 border border-red-500';
+                    statusEl.querySelector('span').textContent = 'Brak połączenia';
+                    statusEl.querySelector('div').className = 'w-2 h-2 rounded-full bg-red-500 animate-pulse-custom';
+                });
+        }
+
         // Initialize
-        connect();
+        if (MODE === 'http') {
+            // Tryb HTTP polling - dla internetu
+            pollHttp();
+            setInterval(pollHttp, POLL_INTERVAL);
+        } else {
+            // Tryb WebSocket - dla sieci lokalnej
+            connect();
+            setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'request_results' }));
+                }
+            }, 5000);
+        }
+
         setInterval(updateTimer, 1000);
-        
-        // Auto-request fresh data every 5 seconds
-        setInterval(() => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'request_results' }));
-            }
-        }, 5000);
 
         // Custom scrollbar
         const style = document.createElement('style');
