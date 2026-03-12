@@ -134,6 +134,7 @@
           const [httpPublishToken, setHttpPublishToken] = useState('yogo2025');
           const [httpPublishEnabled, setHttpPublishEnabled] = useState(false);
           const [httpEventId, setHttpEventId] = useState('');
+          const [serverRaces, setServerRaces] = useState(null);
           const [httpPublishStatus, setHttpPublishStatus] = useState(null); // null | 'ok' | 'error'
           const [httpPublishLastAt, setHttpPublishLastAt] = useState(null);
           const httpPublishThrottleRef = useRef(null);
@@ -487,6 +488,22 @@
               sendResultsUpdate();
             }
           }, [chronotrackData]);
+
+          // ========== RACE MANAGEMENT ==========
+          const loadRaces = () => {
+            if (!httpPublishUrl || !httpPublishToken) return;
+            fetch(httpPublishUrl + '?action=list&token=' + encodeURIComponent(httpPublishToken))
+              .then(r => r.json())
+              .then(d => setServerRaces(d.races || []))
+              .catch(() => setServerRaces([]));
+          };
+
+          const deleteRace = (eventName) => {
+            if (!confirm('Usunąć wyścig "' + eventName + '"?')) return;
+            fetch(httpPublishUrl + '?token=' + encodeURIComponent(httpPublishToken) + '&event=' + encodeURIComponent(eventName), { method: 'DELETE' })
+              .then(() => loadRaces())
+              .catch(() => {});
+          };
 
           // ========== HTTP PUBLISH (serwer WWW / CyberFolks) ==========
           const publishResultsHttp = () => {
@@ -2316,40 +2333,26 @@
                         </div>
 
                         {/* Zarządzanie wyścigami */}
-                        {httpPublishUrl && httpPublishToken && (() => {
-                          const [races, setRaces] = React.useState(null);
-                          const loadRaces = () => {
-                            fetch(httpPublishUrl + '?action=list&token=' + encodeURIComponent(httpPublishToken))
-                              .then(r => r.json())
-                              .then(d => setRaces(d.races || []))
-                              .catch(() => setRaces([]));
-                          };
-                          const deleteRace = (eventName) => {
-                            if (!confirm('Usunąć wyścig "' + eventName + '"?')) return;
-                            fetch(httpPublishUrl + '?token=' + encodeURIComponent(httpPublishToken) + '&event=' + encodeURIComponent(eventName), { method: 'DELETE' })
-                              .then(() => loadRaces());
-                          };
-                          return (
-                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-bold text-sm">📂 Zapisane wyścigi na serwerze</h3>
-                                <button onClick={loadRaces} className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">🔄 Odśwież</button>
-                              </div>
-                              {races === null && <p className="text-xs text-gray-500">Kliknij Odśwież aby załadować listę</p>}
-                              {races !== null && races.length === 0 && <p className="text-xs text-gray-500">Brak zapisanych wyścigów</p>}
-                              {races !== null && races.map(r => (
-                                <div key={r.event} className="flex items-center justify-between py-1 border-b text-sm">
-                                  <div>
-                                    <span className="font-mono font-bold text-xs">{r.event}</span>
-                                    <span className="text-gray-500 ml-2">{r.eventName !== r.event ? r.eventName : ''}</span>
-                                    <span className="text-xs text-gray-400 ml-2">{r.participants} ucz. • {r.savedAt ? new Date(r.savedAt).toLocaleString('pl-PL') : ''}</span>
-                                  </div>
-                                  <button onClick={() => deleteRace(r.event)} className="text-red-500 hover:text-red-700 text-xs px-2">🗑 Usuń</button>
-                                </div>
-                              ))}
+                        {httpPublishUrl && httpPublishToken && (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-bold text-sm">📂 Zapisane wyścigi na serwerze</h3>
+                              <button onClick={loadRaces} className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">🔄 Odśwież</button>
                             </div>
-                          );
-                        })()}
+                            {serverRaces === null && <p className="text-xs text-gray-500">Kliknij Odśwież aby załadować listę</p>}
+                            {serverRaces !== null && serverRaces.length === 0 && <p className="text-xs text-gray-500">Brak zapisanych wyścigów</p>}
+                            {serverRaces !== null && serverRaces.map(r => (
+                              <div key={r.event} className="flex items-center justify-between py-1 border-b text-sm">
+                                <div>
+                                  <span className="font-mono font-bold text-xs">{r.event}</span>
+                                  {r.eventName !== r.event && <span className="text-gray-500 ml-2">{r.eventName}</span>}
+                                  <span className="text-xs text-gray-400 ml-2">{r.participants} ucz. • {r.savedAt ? new Date(r.savedAt).toLocaleString('pl-PL') : ''}</span>
+                                </div>
+                                <button onClick={() => deleteRace(r.event)} className="text-red-500 hover:text-red-700 text-xs px-2">🗑 Usuń</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {lastReading && (
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
